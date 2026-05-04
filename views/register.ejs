@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-icon-logo">🛡️</div>
+        <div class="sidebar-logo">HL2 Forum</div>
+        
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="/" class="nav-link" data-tooltip="Главная">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Главная</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/login" class="nav-link" data-tooltip="Вход">
+                    <span class="nav-icon">🔑</span>
+                    <span class="nav-text">Вход</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/register" class="nav-link active" data-tooltip="Регистрация">
+                    <span class="nav-icon">📝</span>
+                    <span class="nav-text">Регистрация</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1><a href="/">Half-Life 2 Fan Forum</a></h1>
+        </header>
+
+        <div class="auth-form">
+            <h2>Регистрация</h2>
+            <form action="/register" method="POST">
+                <input type="text" name="username" placeholder="Логин" required>
+                <input type="password" name="password" placeholder="Пароль" required>
+                <button type="submit">Зарегистрироваться</button>
+            </form>
+            <p>Уже есть аккаунт? <a href="/login">Войти</a></p>
+        </div>
+    </div>
+</body>
+</html>

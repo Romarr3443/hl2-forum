@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Чат с <%= receiver.username %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            max-width: 800px;
+            margin: 20px auto;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #555;
+        }
+        .chat-header img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+        .chat-messages { flex: 1; overflow-y: auto; margin-bottom: 20px; padding-right: 10px; }
+        .message { margin-bottom: 15px; display: flex; align-items: flex-start; gap: 10px; }
+        .message.sent { flex-direction: row-reverse; }
+        .message img.avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+        .message-content { background: rgba(255,255,255,0.1); padding: 10px; border-radius: 10px; max-width: 70%; }
+        .message.sent .message-content { background: rgba(255,153,0,0.2); }
+        .message-file { margin-top: 10px; max-width: 300px; }
+        .message-file img, .message-file video { max-width: 100%; border-radius: 5px; }
+        .chat-input { display: flex; gap: 10px; align-items: center; }
+        .chat-input input[type="text"] { flex: 1; }
+        .chat-input input[type="file"] { width: 150px; }
+    </style>
+</head>
+<body>
+    <!-- БОКОВАЯ ПАНЕЛЬ -->
+    <nav class="sidebar">
+        <div class="sidebar-icon-logo">🛡️</div>
+        <div class="sidebar-logo">HL2 Forum</div>
+        
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="/" class="nav-link" data-tooltip="Главная">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Главная</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/new" class="nav-link create-btn" data-tooltip="Создать тему">
+                    <span class="nav-icon">✏️</span>
+                    <span class="nav-text">Создать тему</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/chat" class="nav-link" data-tooltip="Общий чат">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-text">Общий чат</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/groups" class="nav-link" data-tooltip="Группы">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-text">Группы</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/dialogs" class="nav-link" data-tooltip="Диалоги">
+                    <span class="nav-icon">📨</span>
+                    <span class="nav-text">Диалоги</span>
+                </a>
+            </li>
+            
+            <div class="nav-divider"></div>
+            
+            <li class="nav-item">
+                <a href="/user/<%= user.id %>" class="nav-link" data-tooltip="Профиль">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Профиль</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/logout" class="nav-link logout-btn" data-tooltip="Выход">
+                    <span class="nav-icon">🚪</span>
+                    <span class="nav-text">Выход</span>
+                </a>
+            <li class="nav-item">
+    <a href="/support" class="nav-link" data-tooltip="Поддержка">
+        <span class="nav-icon">🆘</span>
+        <span class="nav-text">Поддержка</span>
+    </a>
+</li>
+    <% if (['founder','admin','support','moderator'].includes(user.role)) { %>
+        <li class="nav-item">
+            <a href="/admin" class="nav-link" data-tooltip="Админ-панель" style="color: #ff9900;">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Админ-панель</span>
+            </a>
+        </li>
+    <% } %>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1><a href="/">Half-Life 2 Fan Forum</a></h1>
+            <div class="user-menu">
+                <img src="<%= user.avatar %>" width="30">
+                <a href="/user/<%= user.id %>"><%= user.username %></a>
+            </div>
+        </header>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <img src="<%= receiver.avatar %>" alt="<%= receiver.username %>">
+                <div>
+                    <h3><%= receiver.username %></h3>
+                    <small>Личный чат</small>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="messages"></div>
+
+            <div class="gif-section" style="margin:5px 0;">
+    <button type="button" onclick="toggleGifSearch()" style="background:#9C27B0;color:white;padding:8px 15px;font-size:0.9em;">🎬 GIF</button>
+    <div id="gif-search" style="display:none;margin:10px 0;padding:10px;background:rgba(0,0,0,0.5);border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex;gap:8px;">
+            <input type="text" id="gif-query" placeholder="Поиск гифки..." style="flex:1;margin:0;" onkeypress="if(event.key==='Enter'){event.preventDefault();searchGifs();}">
+            <button type="button" onclick="searchGifs()" style="padding:8px 15px;margin:0;">🔍</button>
+        </div>
+        <div id="gif-results" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;max-height:250px;overflow-y:auto;"></div>
+    </div>
+</div>
+            <form class="chat-input" id="chatForm" enctype="multipart/form-data">
+                <input type="file" id="fileInput" name="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar">
+                <input type="text" id="messageInput" placeholder="Введите сообщение..." autocomplete="off">
+                <button type="submit">Отправить</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const messagesDiv = document.getElementById('messages');
+        const chatForm = document.getElementById('chatForm');
+        const messageInput = document.getElementById('messageInput');
+        const fileInput = document.getElementById('fileInput');
+
+        const user = {
+            id: <%= user.id %>,
+            username: '<%= user.username %>',
+            avatar: '<%= user.avatar %>'
+        };
+        const receiver = {
+            id: <%= receiver.id %>,
+            username: '<%= receiver.username %>',
+            avatar: '<%= receiver.avatar %>'
+        };
+
+        const addedMessageIds = new Set();
+
+        fetch('/api/private-messages/<%= receiver.id %>')
+            .then(response => response.json())
+            .then(messages => {
+                messages.forEach(msg => {
+                    addMessageToChat(msg);
+                    addedMessageIds.add(msg.id);
+                });
+                scrollToBottom();
+            });
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const content = messageInput.value.trim();
+            const file = fileInput.files[0];
+            
+            if (!content && !file) return;
+
+            const submitBtn = chatForm.querySelector('button');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Отправка...';
+
+            const formData = new FormData();
+            formData.append('receiverId', receiver.id);
+            formData.append('content', content);
+            if (file) formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/send-private-message', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    messageInput.value = '';
+                    fileInput.value = '';
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Отправить';
+            }
+        });
+
+        socket.on('private_message', (msgData) => {
+            if ((msgData.sender_id == user.id && msgData.receiver_id == receiver.id) ||
+                (msgData.sender_id == receiver.id && msgData.receiver_id == user.id)) {
+                if (!addedMessageIds.has(msgData.id)) {
+                    addedMessageIds.add(msgData.id);
+                    addMessageToChat(msgData);
+                    scrollToBottom();
+                }
+            }
+        });
+
+        function addMessageToChat(msg) {
+            const isSent = msg.sender_id == user.id;
+            const div = document.createElement('div');
+            div.className = `message ${isSent ? 'sent' : 'received'}`;
+            
+            let fileHtml = '';
+            if (msg.file_path) {
+                const ext = msg.file_path.split('.').pop().toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
+                    fileHtml = `<div class="message-file"><img src="${msg.file_path}"></div>`;
+                } else if (['mp4', 'webm'].includes(ext)) {
+                    fileHtml = `<div class="message-file"><video src="${msg.file_path}" controls></video></div>`;
+                } else {
+                    fileHtml = `<div class="message-file"><a href="${msg.file_path}" download>📎 Файл</a></div>`;
+                }
+            }
+            
+            div.innerHTML = `
+                <img class="avatar" src="${isSent ? user.avatar : receiver.avatar}">
+                <div class="message-content">
+                    <div>${msg.content || ''}</div>
+                    ${fileHtml}
+                    <small style="color: #888;">${new Date(msg.created_at).toLocaleTimeString()}</small>
+                </div>
+            `;
+            messagesDiv.appendChild(div);
+        }
+
+        function scrollToBottom() {
+            setTimeout(() => { messagesDiv.scrollTop = messagesDiv.scrollHeight; }, 50);
+        }
+        // ========== СИСТЕМА ГИФОК ==========
+let gifVisible = false;
+
+function toggleGifSearch() {
+    gifVisible = !gifVisible;
+    document.getElementById('gif-search').style.display = gifVisible ? 'block' : 'none';
+    if (gifVisible) {
+        document.getElementById('gif-query').focus();
+    }
+}
+
+async function searchGifs() {
+    const query = document.getElementById('gif-query').value.trim();
+    if (!query) return;
+    
+    const API_KEY = 'aFFKTuSMjdC8SzMONUofN6e5WUO8WCn6';
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=pg-13&lang=ru`;
+    
+    document.getElementById('gif-results').innerHTML = '<div class="loading"></div>';
+    
+    try {
+        const r = await fetch(url);
+        const d = await r.json();
+        const results = document.getElementById('gif-results');
+        
+        if (d.data.length === 0) {
+            results.innerHTML = '<p style="color:#888;text-align:center;">Ничего не найдено 😔</p>';
+            return;
+        }
+        
+        results.innerHTML = d.data.map(g => `
+            <div style="cursor:pointer;transition:0.3s;border-radius:8px;overflow:hidden;border:2px solid transparent;"
+                 onmouseover="this.style.borderColor='#ff9900';this.style.transform='scale(1.05)'"
+                 onmouseout="this.style.borderColor='transparent';this.style.transform='scale(1)'"
+                 onclick="insertGif('${g.images.downsized.url.replace(/'/g, "\\'")}')">
+                <img src="${g.images.fixed_height_small.url}" alt="${g.title}" style="height:80px;display:block;">
+            </div>
+        `).join('');
+    } catch(e) {
+        console.error('Ошибка загрузки гифок:', e);
+        document.getElementById('gif-results').innerHTML = '<p style="color:#ff6b6b;">Ошибка загрузки 😢</p>';
+    }
+}
+
+function insertGif(url) {
+    // Для чатов - сразу отправляем
+    const isChat = !!document.getElementById('messageInput');
+    const isPrivateChat = !!document.getElementById('chatForm') && document.getElementById('messageInput');
+    const isGroupChat = window.location.pathname.includes('/group/');
+    const isTopicComment = !!document.querySelector('textarea[name="content"]');
+    
+    if (isGroupChat) {
+        // Отправка гифки в группу
+        const formData = new FormData();
+        formData.append('groupId', groupId);
+        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
+        formData.append('isGif', '1');
+        
+        fetch('/api/send-group-message', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('gif-search').style.display = 'none';
+                    gifVisible = false;
+                }
+            });
+    } else if (isPrivateChat) {
+        // Отправка гифки в личку
+        const formData = new FormData();
+        formData.append('receiverId', receiver.id);
+        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
+        
+        fetch('/api/send-private-message', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('gif-search').style.display = 'none';
+                    gifVisible = false;
+                }
+            });
+    } else if (isTopicComment) {
+        // Вставка гифки в текст комментария/темы
+        const textarea = document.querySelector('textarea[name="content"]');
+        textarea.value += `\n<img src="${url}" style="max-width:100%;border-radius:8px;">\n`;
+        document.getElementById('gif-search').style.display = 'none';
+        gifVisible = false;
+    } else if (isChat) {
+        // Общий чат - через Socket.io
+        socket.emit('chat message', {
+            userId: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            content: `<img src="${url}" style="max-width:100%;border-radius:8px;">`
+        });
+        document.getElementById('gif-search').style.display = 'none';
+        gifVisible = false;
+    }
+}
+    </script>
+</body>
+</html>

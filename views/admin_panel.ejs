@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Админ-панель</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .admin-container { max-width: 1000px; margin: 20px auto; padding: 20px; }
+        .admin-tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #555; }
+        .admin-tab { padding: 10px 20px; cursor: pointer; border: none; background: rgba(0,0,0,0.5); color: #fff; border-radius: 5px 5px 0 0; transition: all 0.3s; }
+        .admin-tab.active { background: rgba(255,153,0,0.3); color: #ff9900; }
+        .admin-tab:hover { background: rgba(255,153,0,0.2); }
+        .admin-section { display: none; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; }
+        .admin-section.active { display: block; }
+        .user-list-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.05); margin-bottom: 5px; border-radius: 5px; }
+        .user-list-item img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 10px; }
+        .user-info { display: flex; align-items: center; flex: 1; }
+        .user-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+        .action-btn { padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer; font-size: 0.8em; }
+        .ban-btn { background: #ff6b6b; color: white; }
+        .mute-btn { background: #ffa500; color: black; }
+        .unban-btn { background: #4CAF50; color: white; }
+        .unmute-btn { background: #2196F3; color: white; }
+        .delete-btn { background: #f44336; color: white; }
+        .role-select { padding: 5px; background: #333; color: white; border: 1px solid #555; border-radius: 3px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.8); }
+        .modal-content { background: #1a1a1a; margin: 10% auto; padding: 20px; border-radius: 10px; width: 400px; border: 1px solid #ff9900; }
+        .modal-content input, .modal-content select, .modal-content textarea { width: 100%; margin: 10px 0; padding: 8px; background: #333; border: 1px solid #555; color: white; border-radius: 3px; }
+        .close-btn { float: right; cursor: pointer; font-size: 1.5em; color: #888; }
+        .close-btn:hover { color: white; }
+        .founder-badge { background: #ff0000; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.7em; margin-left: 5px; }
+        .admin-badge { background: #ff9900; color: black; padding: 2px 8px; border-radius: 3px; font-size: 0.7em; margin-left: 5px; }
+        .support-badge { background: #2196F3; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.7em; margin-left: 5px; }
+        .moderator-badge { background: #9C27B0; color: white; padding: 2px 8px; border-radius: 3px; font-size: 0.7em; margin-left: 5px; }
+        .appeals-section { margin-top: 20px; }
+        .appeal-item { padding: 10px; background: rgba(255,255,255,0.05); margin-bottom: 5px; border-radius: 5px; border-left: 3px solid #ff9900; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/">HL2 Fan Forum - Админ-панель</a></h1>
+            <div class="user-menu">
+                <% if (user) { %>
+                    <img src="<%= user.avatar %>" width="30">
+                    <a href="/user/<%= user.id %>"><%= user.username %></a>
+                    <a href="/">На форум</a>
+                    <a href="/logout">Выход</a>
+                <% } %>
+            </div>
+        </header>
+
+        <div class="admin-container">
+            <div class="admin-tabs">
+                <button class="admin-tab active" onclick="showTab('users')">👥 Пользователи</button>
+                <button class="admin-tab" onclick="showTab('bans')">🚫 Баны</button>
+                <button class="admin-tab" onclick="showTab('mutes')">🔇 Муты</button>
+                <button class="admin-tab" onclick="showTab('appeals')">📝 Апелляции</button>
+                <button class="admin-tab" onclick="showTab('topics')">📋 Темы</button>
+                <button class="admin-tab" onclick="showTab('comments')">💬 Комментарии</button>
+            </div>
+
+            <!-- ПОЛЬЗОВАТЕЛИ -->
+            <div id="users-section" class="admin-section active">
+                <h2>Управление пользователями</h2>
+                <div id="users-list">
+                    <% users.forEach(function(u) { %>
+                        <div class="user-list-item">
+                            <div class="user-info">
+                                <img src="<%= u.avatar %>" alt="<%= u.username %>">
+                                <div>
+                                    <a href="/user/<%= u.id %>"><%= u.username %></a>
+                                    <% if (u.role === 'founder') { %><span class="founder-badge">Основатель</span><% } %>
+                                    <% if (u.role === 'admin') { %><span class="admin-badge">Админ</span><% } %>
+                                    <% if (u.role === 'support') { %><span class="support-badge">Техподдержка</span><% } %>
+                                    <% if (u.role === 'moderator') { %><span class="moderator-badge">Модератор</span><% } %>
+                                    <% if (u.is_banned) { %><span style="color:#ff6b6b;">🚫</span><% } %>
+                                    <% if (u.is_muted) { %><span style="color:#ffa500;">🔇</span><% } %>
+                                </div>
+                            </div>
+                            <div class="user-actions">
+                                <% if (u.id !== user.id) { %>
+                                    <% if (u.role !== 'founder' && user.role === 'founder') { %>
+                                        <select class="role-select" onchange="changeRole(<%= u.id %>, this.value)">
+                                            <option value="user" <%= u.role === 'user' ? 'selected' : '' %>>Пользователь</option>
+                                            <option value="moderator" <%= u.role === 'moderator' ? 'selected' : '' %>>Модератор</option>
+                                            <option value="support" <%= u.role === 'support' ? 'selected' : '' %>>Техподдержка</option>
+                                            <option value="admin" <%= u.role === 'admin' ? 'selected' : '' %>>Админ</option>
+                                        </select>
+                                    <% } %>
+                                    <% if (!u.is_banned) { %>
+                                        <button class="action-btn ban-btn" onclick="openActionModal(<%= u.id %>, '<%= u.username %>', 'ban')">🔨 Бан</button>
+                                    <% } else { %>
+                                        <button class="action-btn unban-btn" onclick="unbanUser(<%= u.id %>)">✅ Разбан</button>
+                                    <% } %>
+                                    <% if (!u.is_muted) { %>
+                                        <button class="action-btn mute-btn" onclick="openActionModal(<%= u.id %>, '<%= u.username %>', 'mute')">🔇 Мут</button>
+                                    <% } else { %>
+                                        <button class="action-btn unmute-btn" onclick="unmuteUser(<%= u.id %>)">🔊 Размут</button>
+                                    <% } %>
+                                <% } %>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            </div>
+
+            <!-- БАНЫ -->
+            <div id="bans-section" class="admin-section">
+                <h2>Активные баны</h2>
+                <% bans.forEach(function(ban) { %>
+                    <div class="user-list-item">
+                        <div class="user-info">
+                            <img src="<%= ban.avatar %>" alt="<%= ban.username %>">
+                            <div>
+                                <a href="/user/<%= ban.user_id %>"><%= ban.username %></a>
+                                <span style="color:#888;">
+                                    <% if (ban.is_permanent) { %>⚡ Навсегда<% } else { %>до <%= new Date(ban.banned_until).toLocaleString('ru-RU') %><% } %>
+                                </span>
+                                <br><small>Причина: <%= ban.reason %></small>
+                            </div>
+                        </div>
+                        <button class="action-btn unban-btn" onclick="unbanUser(<%= ban.user_id %>)">✅ Разбан</button>
+                    </div>
+                <% }); %>
+                <% if (bans.length === 0) { %><p>Нет активных банов</p><% } %>
+            </div>
+
+            <!-- МУТЫ -->
+            <div id="mutes-section" class="admin-section">
+                <h2>Активные муты</h2>
+                <% mutes.forEach(function(mute) { %>
+                    <div class="user-list-item">
+                        <div class="user-info">
+                            <img src="<%= mute.avatar %>" alt="<%= mute.username %>">
+                            <div>
+                                <a href="/user/<%= mute.user_id %>"><%= mute.username %></a>
+                                <span style="color:#888;">до <%= new Date(mute.muted_until).toLocaleString('ru-RU') %></span>
+                                <br><small>Причина: <%= mute.reason %></small>
+                            </div>
+                        </div>
+                        <button class="action-btn unmute-btn" onclick="unmuteUser(<%= mute.user_id %>)">🔊 Размут</button>
+                    </div>
+                <% }); %>
+                <% if (mutes.length === 0) { %><p>Нет активных мутов</p><% } %>
+            </div>
+
+            <!-- АПЕЛЛЯЦИИ -->
+            <div id="appeals-section" class="admin-section">
+                <h2>Апелляции</h2>
+                <div id="appeals-list">
+                    <p style="color:#888;">Загрузка апелляций...</p>
+                </div>
+            </div>
+
+            <!-- ТЕМЫ -->
+            <div id="topics-section" class="admin-section">
+                <h2>Последние темы</h2>
+                <% topics.forEach(function(topic) { %>
+                    <div class="user-list-item">
+                        <div class="user-info">
+                            <div>
+                                <a href="/topic/<%= topic.id %>"><%= topic.title %></a>
+                                <br><small>Автор: <%= topic.author_username %></small>
+                            </div>
+                        </div>
+                        <button class="action-btn delete-btn" onclick="deleteTopic(<%= topic.id %>)">🗑️ Удалить</button>
+                    </div>
+                <% }); %>
+            </div>
+
+            <!-- КОММЕНТАРИИ -->
+            <div id="comments-section" class="admin-section">
+                <h2>Последние комментарии</h2>
+                <% comments.forEach(function(comment) { %>
+                    <div class="user-list-item">
+                        <div class="user-info">
+                            <div>
+                                <%= comment.content.substring(0, 80) %>...
+                                <br><small>Автор: <%= comment.author_username %> | Тема: <%= comment.topic_title %></small>
+                            </div>
+                        </div>
+                        <button class="action-btn delete-btn" onclick="deleteComment(<%= comment.id %>)">🗑️ Удалить</button>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно -->
+    <div id="actionModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <h3 id="modal-title">Бан/Мут</h3>
+            <input type="hidden" id="modal-user-id">
+            <input type="hidden" id="modal-action">
+            <label>Причина:</label>
+            <textarea id="modal-reason" rows="3" placeholder="Причина..."></textarea>
+            <label>Длительность:</label>
+            <select id="modal-duration">
+                <option value="1">1 час</option>
+                <option value="24">24 часа</option>
+                <option value="72">3 дня</option>
+                <option value="168">7 дней</option>
+                <option value="720">30 дней</option>
+                <option value="permanent">Навсегда</option>
+            </select>
+            <button onclick="confirmAction()" style="width:100%;margin-top:10px;">Подтвердить</button>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+            document.querySelector('[onclick="showTab(\'' + tabName + '\')"]').classList.add('active');
+            document.getElementById(tabName + '-section').classList.add('active');
+        }
+
+        function openActionModal(userId, username, action) {
+            document.getElementById('modal-user-id').value = userId;
+            document.getElementById('modal-action').value = action;
+            document.getElementById('modal-title').textContent = action === 'ban' ? '🔨 Бан: ' + username : '🔇 Мут: ' + username;
+            document.getElementById('actionModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('actionModal').style.display = 'none';
+        }
+
+        async function confirmAction() {
+            const userId = document.getElementById('modal-user-id').value;
+            const action = document.getElementById('modal-action').value;
+            const reason = document.getElementById('modal-reason').value;
+            const duration = document.getElementById('modal-duration').value;
+
+            try {
+                const url = action === 'ban' ? '/api/ban-user' : '/api/mute-user';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, reason, duration })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    alert('Готово!');
+                    window.location.reload();
+                } else {
+                    alert(result.error || 'Ошибка');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function unbanUser(userId) {
+            if (!confirm('Разбанить?')) return;
+            try {
+                const r = await fetch('/api/unban-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                const d = await r.json();
+                if (d.success) window.location.reload();
+                else alert(d.error);
+            } catch(e) { console.error(e); }
+        }
+
+        async function unmuteUser(userId) {
+            if (!confirm('Размутить?')) return;
+            try {
+                const r = await fetch('/api/unmute-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                const d = await r.json();
+                if (d.success) window.location.reload();
+                else alert(d.error);
+            } catch(e) { console.error(e); }
+        }
+
+        async function deleteTopic(topicId) {
+            if (!confirm('Удалить тему?')) return;
+            const r = await fetch('/api/delete-topic', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ topicId })
+            });
+            const d = await r.json();
+            if (d.success) window.location.reload();
+        }
+
+        async function deleteComment(commentId) {
+            if (!confirm('Удалить комментарий?')) return;
+            const r = await fetch('/api/delete-comment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ commentId })
+            });
+            const d = await r.json();
+            if (d.success) window.location.reload();
+        }
+
+        async function changeRole(userId, role) {
+            const r = await fetch('/api/change-role', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, role })
+            });
+            const d = await r.json();
+            if (d.success) {
+                alert('Роль обновлена!');
+                window.location.reload();
+            } else {
+                alert(d.error);
+
+            // ========== СИСТЕМА ГИФОК ==========
+let gifVisible = false;
+
+function toggleGifSearch() {
+    gifVisible = !gifVisible;
+    document.getElementById('gif-search').style.display = gifVisible ? 'block' : 'none';
+    if (gifVisible) {
+        document.getElementById('gif-query').focus();
+    }
+}
+
+async function searchGifs() {
+    const query = document.getElementById('gif-query').value.trim();
+    if (!query) return;
+    
+    const API_KEY = 'aFFKTuSMjdC8SzMONUofN6e5WUO8WCn6';
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=pg-13&lang=ru`;
+    
+    document.getElementById('gif-results').innerHTML = '<div class="loading"></div>';
+    
+    try {
+        const r = await fetch(url);
+        const d = await r.json();
+        const results = document.getElementById('gif-results');
+        
+        if (d.data.length === 0) {
+            results.innerHTML = '<p style="color:#888;text-align:center;">Ничего не найдено 😔</p>';
+            return;
+        }
+        
+        results.innerHTML = d.data.map(g => `
+            <div style="cursor:pointer;transition:0.3s;border-radius:8px;overflow:hidden;border:2px solid transparent;"
+                 onmouseover="this.style.borderColor='#ff9900';this.style.transform='scale(1.05)'"
+                 onmouseout="this.style.borderColor='transparent';this.style.transform='scale(1)'"
+                 onclick="insertGif('${g.images.downsized.url.replace(/'/g, "\\'")}')">
+                <img src="${g.images.fixed_height_small.url}" alt="${g.title}" style="height:80px;display:block;">
+            </div>
+        `).join('');
+    } catch(e) {
+        console.error('Ошибка загрузки гифок:', e);
+        document.getElementById('gif-results').innerHTML = '<p style="color:#ff6b6b;">Ошибка загрузки 😢</p>';
+    }
+}
+
+function insertGif(url) {
+    // Для чатов - сразу отправляем
+    const isChat = !!document.getElementById('messageInput');
+    const isPrivateChat = !!document.getElementById('chatForm') && document.getElementById('messageInput');
+    const isGroupChat = window.location.pathname.includes('/group/');
+    const isTopicComment = !!document.querySelector('textarea[name="content"]');
+    
+    if (isGroupChat) {
+        // Отправка гифки в группу
+        const formData = new FormData();
+        formData.append('groupId', groupId);
+        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
+        formData.append('isGif', '1');
+        
+        fetch('/api/send-group-message', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('gif-search').style.display = 'none';
+                    gifVisible = false;
+                }
+            });
+    } else if (isPrivateChat) {
+        // Отправка гифки в личку
+        const formData = new FormData();
+        formData.append('receiverId', receiver.id);
+        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
+        
+        fetch('/api/send-private-message', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('gif-search').style.display = 'none';
+                    gifVisible = false;
+                }
+            });
+    } else if (isTopicComment) {
+        // Вставка гифки в текст комментария/темы
+        const textarea = document.querySelector('textarea[name="content"]');
+        textarea.value += `\n<img src="${url}" style="max-width:100%;border-radius:8px;">\n`;
+        document.getElementById('gif-search').style.display = 'none';
+        gifVisible = false;
+    } else if (isChat) {
+        // Общий чат - через Socket.io
+        socket.emit('chat message', {
+            userId: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            content: `<img src="${url}" style="max-width:100%;border-radius:8px;">`
+        });
+        document.getElementById('gif-search').style.display = 'none';
+        gifVisible = false;
+    }
+}
+            }
+        }
+    </script>
+</body>
+</html>

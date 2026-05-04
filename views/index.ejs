@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>HL2 Fan Forum</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <audio id="bgMusic" loop></audio>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-icon-logo">🛡️</div>
+        <div class="sidebar-logo">HL2 Forum</div>
+        <ul class="nav-list">
+            <li class="nav-item"><a href="/" class="nav-link active" data-tooltip="Главная"><span class="nav-icon">🏠</span><span class="nav-text">Главная</span></a></li>
+            <li class="nav-item"><a href="/new" class="nav-link create-btn" data-tooltip="Создать тему"><span class="nav-icon">✏️</span><span class="nav-text">Создать тему</span></a></li>
+            <li class="nav-item"><a href="/chat" class="nav-link" data-tooltip="Общий чат"><span class="nav-icon">💬</span><span class="nav-text">Общий чат</span></a></li>
+            <li class="nav-item"><a href="/groups" class="nav-link" data-tooltip="Группы"><span class="nav-icon">👥</span><span class="nav-text">Группы</span></a></li>
+            <li class="nav-item"><a href="/dialogs" class="nav-link" data-tooltip="Диалоги"><span class="nav-icon">📨</span><span class="nav-text">Диалоги</span></a></li>
+            <li class="nav-item"><a href="/support" class="nav-link" data-tooltip="Поддержка"><span class="nav-icon">🆘</span><span class="nav-text">Поддержка</span></a></li>
+            <div class="nav-divider"></div>
+            <% if (user) { %>
+                <li class="nav-item"><a href="/user/<%= user.id %>" class="nav-link" data-tooltip="Профиль"><span class="nav-icon">👤</span><span class="nav-text">Профиль</span></a></li>
+                <% if (['founder','admin','support','moderator'].includes(user.role)) { %>
+                    <li class="nav-item"><a href="/admin" class="nav-link" data-tooltip="Админ-панель" style="color:#ff9900;"><span class="nav-icon">⚙️</span><span class="nav-text">Админ-панель</span></a></li>
+                <% } %>
+                <li class="nav-item"><a href="/logout" class="nav-link logout-btn" data-tooltip="Выход"><span class="nav-icon">🚪</span><span class="nav-text">Выход</span></a></li>
+            <% } else { %>
+                <li class="nav-item"><a href="/login" class="nav-link" data-tooltip="Вход"><span class="nav-icon">🔑</span><span class="nav-text">Вход</span></a></li>
+                <li class="nav-item"><a href="/register" class="nav-link" data-tooltip="Регистрация"><span class="nav-icon">📝</span><span class="nav-text">Регистрация</span></a></li>
+            <% } %>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1><a href="/">Half-Life 2 Fan Forum</a></h1>
+            <div class="user-menu">
+                <% if (user) { %>
+                    <img src="<%= user.avatar %>" alt="<%= user.username %>">
+                    <a href="/user/<%= user.id %>"><%= user.username %></a>
+                    <span class="side-tag <%= user.side %>"><%= user.side %></span>
+                    <button onclick="toggleMusic()" id="musicBtn">🔊</button>
+                <% } else { %>
+                    <button onclick="toggleMusic()" id="musicBtn">🔊</button>
+                <% } %>
+            </div>
+        </header>
+
+        <div class="welcome-text" style="text-align:center;margin-bottom:20px;color:#ffcc80;font-size:1.2em;">
+            🎮 Место вашего обсуждения Half-Life 2
+        </div>
+
+        <div class="main-layout" style="display:flex;gap:20px;">
+            <div class="topics-column" style="flex:2;">
+                <input type="text" id="topic-search" placeholder="🔍 Поиск темы по заголовку..." style="width:100%;padding:12px;margin-bottom:15px;border-radius:8px;background:rgba(30,30,40,0.8);border:1px solid rgba(255,255,255,0.2);color:white;font-size:1em;">
+                
+                <div id="no-results" style="display:none;text-align:center;color:#888;padding:30px;">😔 Темы не найдены...</div>
+                
+                <div class="topics-list">
+                    <% topics.forEach(topic => { %>
+                        <div class="topic-card">
+                            <div class="topic-author">
+                                <img src="<%= topic.avatar %>" alt="<%= topic.username %>">
+                                <div><a href="/user/<%= topic.author_id %>"><%= topic.username %></a></div>
+                                <small class="side-tag <%= topic.side %>"><%= topic.side %></small>
+                            </div>
+                            <div class="topic-content">
+                                <h3><a href="/topic/<%= topic.id %>"><%= topic.title %></a></h3>
+                                <p><%= topic.content.replace(/<[^>]*>/g, '').substring(0, 100) %>...</p>
+                                <% if (topic.image) { %><img src="<%= topic.image %>" width="100"><% } %>
+                            </div>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+            
+            <div class="sidebar-column" style="flex:1;min-width:250px;">
+                <div class="rating-table" style="background:rgba(0,0,0,0.5);padding:15px;border-radius:10px;margin-bottom:15px;">
+                    <h3 style="color:#ff9900;margin-top:0;">🏆 Таблица рейтинга</h3>
+                    <div id="top-users">Загрузка...</div>
+                </div>
+                
+                <div class="popular-topics" style="background:rgba(0,0,0,0.5);padding:15px;border-radius:10px;">
+                    <h3 style="color:#ff9900;margin-top:0;">🔥 Самые обсуждаемые</h3>
+                    <div id="popular-topics">Загрузка...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/music-player.js"></script>
+    <script>
+        document.getElementById('topic-search').addEventListener('keyup', function() {
+            const q = this.value.toLowerCase();
+            let found = false;
+            document.querySelectorAll('.topic-card').forEach(card => {
+                const title = card.querySelector('h3 a').textContent.toLowerCase();
+                if (title.includes(q)) { card.style.display = 'flex'; found = true; }
+                else { card.style.display = 'none'; }
+            });
+            document.getElementById('no-results').style.display = found ? 'none' : 'block';
+        });
+
+        fetch('/api/top-users')
+            .then(r => r.json())
+            .then(users => {
+                document.getElementById('top-users').innerHTML = users.map((u, i) => 
+                    `<div style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <span style="font-weight:bold;color:#ff9900;width:25px;">#${i+1}</span>
+                        <img src="${u.avatar}" width="25" style="border-radius:50%;">
+                        <a href="/user/${u.id}">${u.username}</a>
+                        <span style="margin-left:auto;color:#4CAF50;">${u.rating}⭐</span>
+                    </div>`
+                ).join('');
+            });
+
+        fetch('/api/popular-topics')
+            .then(r => r.json())
+            .then(topics => {
+                document.getElementById('popular-topics').innerHTML = topics.map(t => 
+                    `<div style="padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
+                        <a href="/topic/${t.id}">${t.title.substring(0, 40)}</a>
+                        <small style="color:#888;display:block;">💬 ${t.comments_count} комм.</small>
+                    </div>`
+                ).join('');
+            });
+            // ========== СИСТЕМА ГИФОК ==========
+let gifVisible = false;
+
+function toggleGifSearch() {
+    gifVisible = !gifVisible;
+    document.getElementById('gif-search').style.display = gifVisible ? 'block' : 'none';
+    if (gifVisible) {
+        document.getElementById('gif-query').focus();
+    }
+}
+
+async function searchGifs() {
+    const query = document.getElementById('gif-query').value.trim();
+    if (!query) return;
+    
+    const API_KEY = 'aFFKTuSMjdC8SzMONUofN6e5WUO8WCn6';
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=pg-13&lang=ru`;
+    
+    document.getElementById('gif-results').innerHTML = '<div class="loading"></div>';
+    
+    try {
+        const r = await fetch(url);
+        const d = await r.json();
+        const results = document.getElementById('gif-results');
+        
+        if (d.data.length === 0) {
+            results.innerHTML = '<p style="color:#888;text-align:center;">Ничего не найдено 😔</p>';
+            return;
+        }
+        
+        results.innerHTML = d.data.map(g => `
+            <div style="cursor:pointer;transition:0.3s;border-radius:8px;overflow:hidden;border:2px solid transparent;"
+                 onmouseover="this.style.borderColor='#ff9900';this.style.transform='scale(1.05)'"
+                 onmouseout="this.style.borderColor='transparent';this.style.transform='scale(1)'"
+                 onclick="insertGif('${g.images.downsized.url.replace(/'/g, "\\'")}')">
+                <img src="${g.images.fixed_height_small.url}" alt="${g.title}" style="height:80px;display:block;">
+            </div>
+        `).join('');
+    } catch(e) {
+        console.error('Ошибка загрузки гифок:', e);
+        document.getElementById('gif-results').innerHTML = '<p style="color:#ff6b6b;">Ошибка загрузки 😢</p>';
+    }
+}
+
+function insertGif(url) {
+    // Для чатов - сразу отправляем
+    const isChat = !!document.getElementById('messageInput');
+    const isPrivateChat = !!document.getElementById('chatForm') && document.getElementById('messageInput');
+    const isGroupChat = window.location.pathname.includes('/group/');
+    const isTopicComment = !!document.querySelector('textarea[name="content"]');
+    
+    if (isGroupChat) {
+        // Отправка гифки в группу
+        const formData = new FormData();
+        formData.append('groupId', groupId);
+        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
+        formData.append('isGif', '1');
+        
+        fetch('/api/send-group-message', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('gif-search').style.display = 'none';
+                    gifVisible = false;
+                }
+            });
+    } else if (isPrivateChat) {
+        // Отправка гифки в личку
+        const formData = new FormData();
+        formData.append('receiverId', receiver.id);
+        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
+        
+        fetch('/api/send-private-message', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('gif-search').style.display = 'none';
+                    gifVisible = false;
+                }
+            });
+    } else if (isTopicComment) {
+        // Вставка гифки в текст комментария/темы
+        const textarea = document.querySelector('textarea[name="content"]');
+        textarea.value += `\n<img src="${url}" style="max-width:100%;border-radius:8px;">\n`;
+        document.getElementById('gif-search').style.display = 'none';
+        gifVisible = false;
+    } else if (isChat) {
+        // Общий чат - через Socket.io
+        socket.emit('chat message', {
+            userId: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            content: `<img src="${url}" style="max-width:100%;border-radius:8px;">`
+        });
+        document.getElementById('gif-search').style.display = 'none';
+        gifVisible = false;
+    }
+}
+    </script>
+</body>
+</html>

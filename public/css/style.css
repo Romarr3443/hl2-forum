@@ -1,0 +1,801 @@
+/* ==================== ОСНОВНЫЕ СТИЛИ ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-image: url('/images/your_background.jpg');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+    color: #e0e0e0;
+    background-color: #0a0a0a;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Анимированный оверлей */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.7) 100%);
+    z-index: 0;
+    pointer-events: none;
+    animation: pulse-overlay 8s ease-in-out infinite;
+}
+
+@keyframes pulse-overlay {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 0.9; }
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: rgba(10, 10, 15, 0.85);
+    padding: 20px;
+    padding-left: 80px;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 0 50px rgba(255, 153, 0, 0.1), 0 0 100px rgba(0, 0, 0, 0.5);
+    border-left: 1px solid rgba(255, 153, 0, 0.1);
+    border-right: 1px solid rgba(255, 153, 0, 0.1);
+    animation: slide-in 0.5s ease-out;
+    backdrop-filter: blur(10px);
+}
+
+@keyframes slide-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== БОКОВАЯ ПАНЕЛЬ НАВИГАЦИИ ==================== */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    width: 60px;
+    background: rgba(5, 5, 10, 0.95);
+    border-right: 2px solid rgba(255, 153, 0, 0.3);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 80px 0 20px 0;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 5px 0 30px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(20px);
+    overflow: hidden;
+}
+
+.sidebar:hover {
+    width: 200px;
+}
+
+.sidebar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(255, 153, 0, 0.1), transparent 50%, rgba(255, 153, 0, 0.05));
+    pointer-events: none;
+}
+
+.sidebar-logo {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5em;
+    color: #ff9900;
+    text-shadow: 0 0 15px rgba(255, 153, 0, 0.5);
+    opacity: 0;
+    transition: all 0.4s ease;
+    white-space: nowrap;
+}
+
+.sidebar:hover .sidebar-logo {
+    opacity: 1;
+}
+
+.sidebar-icon-logo {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5em;
+    color: #ff9900;
+    transition: all 0.4s ease;
+}
+
+.sidebar:hover .sidebar-icon-logo {
+    opacity: 0;
+}
+
+.nav-list {
+    list-style: none;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.nav-item {
+    width: 100%;
+    position: relative;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    color: #999;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-link::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 3px;
+    height: 100%;
+    background: #ff9900;
+    transform: scaleY(0);
+    transition: transform 0.3s ease;
+}
+
+.nav-link:hover::before,
+.nav-link.active::before {
+    transform: scaleY(1);
+}
+
+.nav-link:hover {
+    background: rgba(255, 153, 0, 0.15);
+    color: #ff9900;
+}
+
+.nav-link.active {
+    background: rgba(255, 153, 0, 0.2);
+    color: #ff9900;
+}
+
+.nav-icon {
+    font-size: 1.4em;
+    min-width: 30px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.nav-text {
+    margin-left: 15px;
+    opacity: 0;
+    transition: all 0.3s ease;
+    font-size: 0.9em;
+}
+
+.sidebar:hover .nav-text {
+    opacity: 1;
+}
+
+/* Специальные цвета для кнопок */
+.nav-link.create-btn {
+    color: #4caf50;
+}
+
+.nav-link.create-btn:hover {
+    background: rgba(76, 175, 80, 0.15);
+    color: #4caf50;
+}
+
+.nav-link.create-btn::before {
+    background: #4caf50;
+}
+
+.nav-link.logout-btn {
+    color: #ff6b6b;
+}
+
+.nav-link.logout-btn:hover {
+    background: rgba(255, 107, 107, 0.15);
+    color: #ff6b6b;
+}
+
+.nav-link.logout-btn::before {
+    background: #ff6b6b;
+}
+
+/* Разделитель */
+.nav-divider {
+    width: 40px;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 10px auto;
+    transition: all 0.4s ease;
+}
+
+.sidebar:hover .nav-divider {
+    width: 160px;
+}
+
+/* Тултипы для свёрнутого меню */
+.nav-link[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: #ff9900;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.8em;
+    white-space: nowrap;
+    z-index: 1001;
+    border: 1px solid rgba(255, 153, 0, 0.3);
+    pointer-events: none;
+}
+
+.sidebar:hover .nav-link[data-tooltip]:hover::after {
+    display: none;
+}
+
+/* ==================== ШАПКА (компактная) ==================== */
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid rgba(255, 153, 0, 0.3);
+    padding: 10px 20px;
+    background: linear-gradient(135deg, rgba(255, 153, 0, 0.1), rgba(0, 0, 0, 0.5));
+    margin-bottom: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(20px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border-radius: 0 0 10px 10px;
+    animation: header-glow 3s ease-in-out infinite;
+}
+
+@keyframes header-glow {
+    0%, 100% { box-shadow: 0 4px 20px rgba(255, 153, 0, 0.2); }
+    50% { box-shadow: 0 4px 30px rgba(255, 153, 0, 0.4); }
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.3em;
+    text-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
+}
+
+header h1 a {
+    color: #ff9900;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+header h1 a:hover {
+    text-shadow: 0 0 20px rgba(255, 153, 0, 0.8);
+}
+
+/* Компактное меню пользователя в шапке */
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-menu img {
+    border-radius: 50%;
+    border: 2px solid #ff9900;
+    width: 35px;
+    height: 35px;
+    object-fit: cover;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.3);
+}
+
+.user-menu img:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px rgba(255, 153, 0, 0.6);
+}
+
+.user-menu a {
+    color: #ffcc80;
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+}
+
+.user-menu a:hover {
+    color: #ff9900;
+}
+
+#musicBtn {
+    background: rgba(51, 51, 51, 0.5);
+    color: #fff;
+    border: 1px solid rgba(85, 85, 85, 0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+
+#musicBtn:hover {
+    background: rgba(68, 68, 68, 0.8);
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+}
+
+/* ==================== ТЕМЫ НА ГЛАВНОЙ ==================== */
+.topic-card {
+    display: flex;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.02);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+.topic-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 153, 0, 0.1), transparent);
+    transition: left 0.5s ease;
+}
+
+.topic-card:hover::before {
+    left: 100%;
+}
+
+.topic-card:hover {
+    transform: translateX(5px) scale(1.02);
+    border-color: rgba(255, 153, 0, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 153, 0, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.topic-author {
+    width: 130px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.topic-author img {
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border: 2px solid #ff9900;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.2);
+}
+
+.topic-card:hover .topic-author img {
+    transform: rotate(5deg) scale(1.1);
+    box-shadow: 0 0 20px rgba(255, 153, 0, 0.5);
+}
+
+.topic-content {
+    flex-grow: 1;
+    padding-left: 20px;
+}
+
+.topic-content h3 a {
+    color: #ff9900;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.topic-content h3 a:hover {
+    text-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
+    padding-left: 5px;
+}
+
+/* ==================== ТЭГИ СТОРОН ==================== */
+.side-tag {
+    padding: 3px 10px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: bold;
+    display: inline-block;
+    transition: all 0.3s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.side-tag:hover {
+    transform: scale(1.1);
+}
+
+.side-Resistance {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(46, 204, 113, 0.3);
+}
+
+.side-Civilian {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+}
+
+.side-Combine {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.3);
+}
+
+.side-Neutral {
+    background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(149, 165, 166, 0.3);
+}
+
+/* ==================== КОММЕНТАРИИ ==================== */
+.comment {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px 0;
+    transition: all 0.3s ease;
+    animation: fade-in 0.5s ease-out;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.comment:hover {
+    background: rgba(255, 153, 0, 0.05);
+    padding-left: 15px;
+    border-radius: 5px;
+}
+
+.comment-header {
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.comment-header img {
+    vertical-align: middle;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    object-fit: cover;
+    border: 2px solid rgba(255, 153, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.comment:hover .comment-header img {
+    border-color: #ff9900;
+    box-shadow: 0 0 10px rgba(255, 153, 0, 0.3);
+}
+
+.comment-body {
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+/* ==================== ФОРМЫ ==================== */
+.auth-form, .new-topic-form, .new-comment {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 30px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 10px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 153, 0, 0.2);
+    animation: slide-up 0.5s ease-out;
+    backdrop-filter: blur(10px);
+}
+
+@keyframes slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 12px 15px;
+    margin: 10px 0;
+    background: rgba(30, 30, 40, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    box-sizing: border-box;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 1em;
+    backdrop-filter: blur(5px);
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #ff9900;
+    box-shadow: 0 0 20px rgba(255, 153, 0, 0.3);
+    background: rgba(40, 40, 50, 0.9);
+    transform: translateY(-2px);
+}
+
+button {
+    background: linear-gradient(135deg, #ff9900, #ff7700);
+    color: #000;
+    border: none;
+    padding: 12px 25px;
+    cursor: pointer;
+    font-weight: bold;
+    border-radius: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 5px 20px rgba(255, 153, 0, 0.3);
+}
+
+button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+button:hover {
+    background: linear-gradient(135deg, #ffaa33, #ff8800);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(255, 153, 0, 0.5);
+}
+
+button:active {
+    transform: translateY(0);
+    box-shadow: 0 5px 15px rgba(255, 153, 0, 0.3);
+}
+
+/* ==================== ПРОФИЛЬ ==================== */
+.profile-card {
+    text-align: center;
+    padding: 30px;
+    background: rgba(0, 0, 0, 0.4);
+    margin-bottom: 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 153, 0, 0.2);
+    animation: fade-in 0.6s ease-out;
+    backdrop-filter: blur(10px);
+}
+
+.profile-card img {
+    border-radius: 50%;
+    border: 3px solid #ff9900;
+    box-shadow: 0 0 30px rgba(255, 153, 0, 0.3);
+    transition: all 0.5s ease;
+}
+
+.profile-card img:hover {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 0 50px rgba(255, 153, 0, 0.6);
+}
+
+/* ==================== ССЫЛКИ ==================== */
+a {
+    color: #ff9900;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+a:hover {
+    text-shadow: 0 0 10px rgba(255, 153, 0, 0.5);
+}
+
+/* ==================== СКРОЛЛБАР ==================== */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #ff9900, #cc7700);
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #ffaa33, #ff9900);
+}
+
+/* ==================== АНИМАЦИЯ ЗАГРУЗКИ ==================== */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 153, 0, 0.3);
+    border-radius: 50%;
+    border-top-color: #ff9900;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ==================== МОДАЛЬНЫЕ ОКНА ==================== */
+.modal {
+    animation: modal-fade 0.3s ease-out;
+}
+
+@keyframes modal-fade {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ==================== СООБЩЕНИЯ В ЧАТЕ ==================== */
+.message {
+    animation: message-slide 0.3s ease-out;
+}
+
+@keyframes message-slide {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.message.sent {
+    animation: message-slide-right 0.3s ease-out;
+}
+
+@keyframes message-slide-right {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.system-message {
+    animation: system-pop 0.5s ease-out;
+}
+
+@keyframes system-pop {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* ==================== МЕДИА-ЗАПРОСЫ ==================== */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .sidebar {
+        width: 100%;
+        height: auto;
+        position: static;
+        flex-direction: row;
+        padding: 10px;
+        justify-content: space-around;
+    }
+    
+    .sidebar:hover {
+        width: 100%;
+    }
+    
+    .nav-list {
+        flex-direction: row;
+    }
+    
+    .nav-text {
+        display: none;
+    }
+    
+    .topic-card {
+        flex-direction: column;
+    }
+    
+    .topic-author {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+/* Гифки */
+.gif-section {
+    position: relative;
+}
+
+#gif-results {
+    scrollbar-width: thin;
+    scrollbar-color: #ff9900 rgba(0,0,0,0.3);
+}
+
+#gif-results::-webkit-scrollbar {
+    height: 6px;
+}
+
+#gif-results::-webkit-scrollbar-thumb {
+    background: #ff9900;
+    border-radius: 3px;
+}
+}

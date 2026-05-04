@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Поддержка</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .support-container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .ticket-card {
+            background: rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .ticket-card:hover {
+            border-color: #ff9900;
+            box-shadow: 0 5px 20px rgba(255,153,0,0.2);
+            transform: translateX(5px);
+        }
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .ticket-status {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .status-open { background: #ff9900; color: black; }
+        .status-in_progress { background: #3498db; color: white; }
+        .status-resolved { background: #4CAF50; color: white; }
+        .status-closed { background: #888; color: white; }
+        .create-ticket-section {
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .staff-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        .staff-founder { background: #ff0000; color: white; }
+        .staff-admin { background: #ff9900; color: black; }
+        .staff-support { background: #2196F3; color: white; }
+        .staff-moderator { background: #9C27B0; color: white; }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-icon-logo">🛡️</div>
+        <div class="sidebar-logo">HL2 Forum</div>
+        
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="/" class="nav-link" data-tooltip="Главная">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Главная</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/new" class="nav-link create-btn" data-tooltip="Создать тему">
+                    <span class="nav-icon">✏️</span>
+                    <span class="nav-text">Создать тему</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/chat" class="nav-link" data-tooltip="Общий чат">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-text">Общий чат</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/groups" class="nav-link" data-tooltip="Группы">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-text">Группы</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/dialogs" class="nav-link" data-tooltip="Диалоги">
+                    <span class="nav-icon">📨</span>
+                    <span class="nav-text">Диалоги</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/support" class="nav-link active" data-tooltip="Поддержка">
+                    <span class="nav-icon">🆘</span>
+                    <span class="nav-text">Поддержка</span>
+                </a>
+            </li>
+            
+            <div class="nav-divider"></div>
+            
+            <% if (user) { %>
+                <li class="nav-item">
+                    <a href="/user/<%= user.id %>" class="nav-link" data-tooltip="Профиль">
+                        <span class="nav-icon">👤</span>
+                        <span class="nav-text">Профиль</span>
+                    </a>
+                </li>
+                <% if (['founder','admin','support'].includes(user.role)) { %>
+                    <li class="nav-item">
+                        <a href="/admin" class="nav-link" data-tooltip="Админ-панель">
+                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-text">Админ-панель</span>
+                        </a>
+                    </li>
+                <% } %>
+                <li class="nav-item">
+                    <a href="/logout" class="nav-link logout-btn" data-tooltip="Выход">
+                        <span class="nav-icon">🚪</span>
+                        <span class="nav-text">Выход</span>
+                    </a>
+                </li>
+            <% } else { %>
+                <li class="nav-item">
+                    <a href="/login" class="nav-link" data-tooltip="Вход">
+                        <span class="nav-icon">🔑</span>
+                        <span class="nav-text">Вход</span>
+                    </a>
+                </li>
+            <li class="nav-item">
+    <a href="/support" class="nav-link" data-tooltip="Поддержка">
+        <span class="nav-icon">🆘</span>
+        <span class="nav-text">Поддержка</span>
+    </a>
+</li>
+    <% if (['founder','admin','support','moderator'].includes(user.role)) { %>
+        <li class="nav-item">
+            <a href="/admin" class="nav-link" data-tooltip="Админ-панель" style="color: #ff9900;">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Админ-панель</span>
+            </a>
+        </li>
+    <% } %>
+                <% } %>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1><a href="/">Half-Life 2 Fan Forum</a></h1>
+            <div class="user-menu">
+                <% if (user) { %>
+                    <img src="<%= user.avatar %>" alt="<%= user.username %>">
+                    <a href="/user/<%= user.id %>"><%= user.username %></a>
+                <% } %>
+            </div>
+        </header>
+
+        <div class="support-container">
+            <% if (user) { %>
+                <div class="create-ticket-section">
+                    <h2>Создать обращение</h2>
+                    <form action="/create-ticket" method="POST">
+                        <select name="category" required>
+                            <option value="question">❓ Вопрос</option>
+                            <option value="bug">🐛 Баг-репорт</option>
+                            <option value="complaint">⚠️ Жалоба</option>
+                            <option value="other">📋 Другое</option>
+                        </select>
+                        <input type="text" name="title" placeholder="Заголовок обращения" required>
+                        <textarea name="description" rows="5" placeholder="Опишите проблему подробно..." required></textarea>
+                        <button type="submit">Отправить</button>
+                    </form>
+                </div>
+            <% } %>
+
+            <h2>Мои обращения</h2>
+            <div id="tickets-list">
+                <% if (tickets.length === 0) { %>
+                    <p style="color: #888;">У вас пока нет обращений.</p>
+                <% } %>
+                <% tickets.forEach(ticket => { %>
+                    <div class="ticket-card" onclick="window.location.href='/ticket/<%= ticket.id %>'">
+                        <div class="ticket-header">
+                            <div>
+                                <strong>
+                                    <% if (ticket.category === 'question') { %>❓<% } %>
+                                    <% if (ticket.category === 'bug') { %>🐛<% } %>
+                                    <% if (ticket.category === 'complaint') { %>⚠️<% } %>
+                                    <% if (ticket.category === 'other') { %>📋<% } %>
+                                    <%= ticket.title %>
+                                </strong>
+                            </div>
+                            <span class="ticket-status status-<%= ticket.status %>">
+                                <% if (ticket.status === 'open') { %>Открыто<% } %>
+                                <% if (ticket.status === 'in_progress') { %>В работе<% } %>
+                                <% if (ticket.status === 'resolved') { %>Решено<% } %>
+                                <% if (ticket.status === 'closed') { %>Закрыто<% } %>
+                            </span>
+                        </div>
+                        <p style="color: #888; margin: 0;">
+                            <%= ticket.description.substring(0, 100) %>...
+                        </p>
+                        <small style="color: #666;">
+                            Создано: <%= new Date(ticket.created_at).toLocaleString('ru-RU') %>
+                            <% if (ticket.assigned_username) { %>
+                                | Назначено: <%= ticket.assigned_username %>
+                            <% } %>
+                        </small>
+                    </div>
+                <% }) %>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

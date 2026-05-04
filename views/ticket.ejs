@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Обращение #<%= ticket.id %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .ticket-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .ticket-info {
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .reply-card {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 3px solid #ff9900;
+        }
+        .reply-card.staff {
+            border-left-color: #2196F3;
+            background: rgba(33,150,243,0.1);
+        }
+        .reply-form {
+            background: rgba(0,0,0,0.5);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-icon-logo">🛡️</div>
+        <div class="sidebar-logo">HL2 Forum</div>
+        
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="/" class="nav-link" data-tooltip="Главная">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Главная</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/support" class="nav-link active" data-tooltip="Поддержка">
+                    <span class="nav-icon">🆘</span>
+                    <span class="nav-text">Поддержка</span>
+                </a>
+            </li>
+            
+            <div class="nav-divider"></div>
+            
+            <li class="nav-item">
+                <a href="/user/<%= user.id %>" class="nav-link" data-tooltip="Профиль">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Профиль</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/logout" class="nav-link logout-btn" data-tooltip="Выход">
+                    <span class="nav-icon">🚪</span>
+                    <span class="nav-text">Выход</span>
+                </a>
+            <li class="nav-item">
+    <a href="/support" class="nav-link" data-tooltip="Поддержка">
+        <span class="nav-icon">🆘</span>
+        <span class="nav-text">Поддержка</span>
+    </a>
+</li>
+    <% if (['founder','admin','support','moderator'].includes(user.role)) { %>
+        <li class="nav-item">
+            <a href="/admin" class="nav-link" data-tooltip="Админ-панель" style="color: #ff9900;">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Админ-панель</span>
+            </a>
+        </li>
+    <% } %>
+            </li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1><a href="/">Half-Life 2 Fan Forum</a></h1>
+            <div class="user-menu">
+                <img src="<%= user.avatar %>" alt="<%= user.username %>">
+                <a href="/user/<%= user.id %>"><%= user.username %></a>
+            </div>
+        </header>
+
+        <div class="ticket-container">
+            <div class="ticket-info">
+                <h2>
+                    <% if (ticket.category === 'question') { %>❓<% } %>
+                    <% if (ticket.category === 'bug') { %>🐛<% } %>
+                    <% if (ticket.category === 'complaint') { %>⚠️<% } %>
+                    <%= ticket.title %>
+                </h2>
+                <p><%= ticket.description %></p>
+                <p style="color: #888;">
+                    Статус: 
+                    <span class="ticket-status status-<%= ticket.status %>">
+                        <%= ticket.status %>
+                    </span>
+                </p>
+                <p style="color: #888;">
+                    Создал: <a href="/user/<%= ticket.author_id %>"><%= ticket.author_username %></a>
+                </p>
+                <% if (ticket.assigned_username) { %>
+                    <p style="color: #888;">
+                        Назначен: 
+                        <span class="staff-badge staff-support"><%= ticket.assigned_username %></span>
+                    </p>
+                <% } %>
+                
+                <% if (['founder','admin','support'].includes(user.role)) { %>
+                    <div style="margin-top: 15px;">
+                        <select id="ticket-status" onchange="updateStatus(<%= ticket.id %>)">
+                            <option value="open" <%= ticket.status === 'open' ? 'selected' : '' %>>Открыто</option>
+                            <option value="in_progress" <%= ticket.status === 'in_progress' ? 'selected' : '' %>>В работе</option>
+                            <option value="resolved" <%= ticket.status === 'resolved' ? 'selected' : '' %>>Решено</option>
+                            <option value="closed" <%= ticket.status === 'closed' ? 'selected' : '' %>>Закрыто</option>
+                        </select>
+                    </div>
+                <% } %>
+            </div>
+
+            <h3>Ответы:</h3>
+            <% replies.forEach(reply => { %>
+                <div class="reply-card <%= reply.is_staff ? 'staff' : '' %>">
+                    <p>
+                        <strong>
+                            <a href="/user/<%= reply.user_id %>"><%= reply.username %></a>
+                            <% if (reply.is_staff) { %>
+                                <span class="staff-badge staff-support">Персонал</span>
+                            <% } %>
+                        </strong>
+                        <small style="color: #888; margin-left: 10px;">
+                            <%= new Date(reply.created_at).toLocaleString('ru-RU') %>
+                        </small>
+                    </p>
+                    <p><%= reply.content %></p>
+                </div>
+            <% }) %>
+
+            <div class="reply-form">
+                <h4>Ответить</h4>
+                <form action="/ticket/<%= ticket.id %>/reply" method="POST">
+                    <textarea name="content" rows="4" placeholder="Ваш ответ..." required></textarea>
+                    <button type="submit">Отправить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function updateStatus(ticketId) {
+            const status = document.getElementById('ticket-status').value;
+            try {
+                const res = await fetch('/api/update-ticket-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticketId, status })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Статус обновлён!');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>

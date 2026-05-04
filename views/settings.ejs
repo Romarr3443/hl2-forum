@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Настройки безопасности</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-icon-logo">🛡️</div>
+        <div class="sidebar-logo">HL2 Forum</div>
+        <ul class="nav-list">
+            <li class="nav-item"><a href="/" class="nav-link"><span class="nav-icon">🏠</span><span class="nav-text">Главная</span></a></li>
+            <li class="nav-item"><a href="/user/<%= user.id %>" class="nav-link"><span class="nav-icon">👤</span><span class="nav-text">Профиль</span></a></li>
+            <li class="nav-item"><a href="/logout" class="nav-link logout-btn"><span class="nav-icon">🚪</span><span class="nav-text">Выход</span></a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1><a href="/">Half-Life 2 Fan Forum</a></h1>
+        </header>
+
+        <div class="auth-form">
+            <h2>🔒 Настройки безопасности</h2>
+            <form id="settings-form">
+                <label style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;margin:10px 0;">
+                    <input type="checkbox" id="do-not-message" <%= settings && settings.do_not_message ? 'checked' : '' %> style="width:auto;">
+                    <span>🚫 Запретить личные сообщения от других пользователей</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,0.05);border-radius:8px;margin:10px 0;">
+                    <input type="checkbox" id="show-online" <%= settings && settings.show_online ? 'checked' : '' %> style="width:auto;">
+                    <span>🟢 Показывать мой онлайн-статус</span>
+                </label>
+                <button type="submit">💾 Сохранить настройки</button>
+            </form>
+            <p style="text-align:center;margin-top:15px;"><a href="/user/<%= user.id %>">← Вернуться в профиль</a></p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('settings-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const doNotMessage = document.getElementById('do-not-message').checked ? 1 : 0;
+            const showOnline = document.getElementById('show-online').checked ? 1 : 0;
+            
+            const r = await fetch('/api/update-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ doNotMessage, showOnline })
+            });
+            const d = await r.json();
+            alert(d.success ? '✅ Настройки сохранены!' : 'Ошибка сохранения');
+        });
+    </script>
+</body>
+</html>

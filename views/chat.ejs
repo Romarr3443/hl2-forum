@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Общий чат</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            max-width: 800px;
+            margin: 20px auto;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 10px;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+        .message img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+        }
+        .message-content {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+        .message-header {
+            font-size: 0.9em;
+            color: #ff9900;
+            margin-bottom: 5px;
+        }
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background: #333;
+            color: white;
+        }
+        .chat-input button {
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- БОКОВАЯ ПАНЕЛЬ -->
+    <nav class="sidebar">
+        <div class="sidebar-icon-logo">🛡️</div>
+        <div class="sidebar-logo">HL2 Forum</div>
+        
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="/" class="nav-link" data-tooltip="Главная">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Главная</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/new" class="nav-link create-btn" data-tooltip="Создать тему">
+                    <span class="nav-icon">✏️</span>
+                    <span class="nav-text">Создать тему</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/chat" class="nav-link active" data-tooltip="Общий чат">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-text">Общий чат</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/groups" class="nav-link" data-tooltip="Группы">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-text">Группы</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/dialogs" class="nav-link" data-tooltip="Диалоги">
+                    <span class="nav-icon">📨</span>
+                    <span class="nav-text">Диалоги</span>
+                </a>
+            </li>
+            
+            <div class="nav-divider"></div>
+            
+            <li class="nav-item">
+                <a href="/user/<%= user.id %>" class="nav-link" data-tooltip="Профиль">
+                    <span class="nav-icon">👤</span>
+                    <span class="nav-text">Профиль</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/logout" class="nav-link logout-btn" data-tooltip="Выход">
+                    <span class="nav-icon">🚪</span>
+                    <span class="nav-text">Выход</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+    <li class="nav-item">
+    <a href="/support" class="nav-link" data-tooltip="Поддержка">
+        <span class="nav-icon">🆘</span>
+        <span class="nav-text">Поддержка</span>
+    </a>
+</li>
+    <% if (['founder','admin','support','moderator'].includes(user.role)) { %>
+        <li class="nav-item">
+            <a href="/admin" class="nav-link" data-tooltip="Админ-панель" style="color: #ff9900;">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Админ-панель</span>
+            </a>
+        </li>
+    <% } %>
+
+    <div class="container">
+        <header>
+            <h1><a href="/">Half-Life 2 Fan Forum Chat</a></h1>
+            <div class="user-menu">
+                <img src="<%= user.avatar %>" width="30">
+                <a href="/user/<%= user.id %>"><%= user.username %></a>
+            </div>
+        </header>
+
+        
+        
+        <div class="chat-container">
+            <div class="chat-messages" id="messages"></div>
+            <form class="chat-input" id="chatForm">
+                <input type="text" id="messageInput" placeholder="Введите сообщение..." autocomplete="off" required>
+                <div class="gif-section" style="margin:5px 0;">
+    <button type="button" onclick="toggleGifSearch()" style="background:#9C27B0;color:white;padding:8px 15px;font-size:0.9em;">🎬 GIF</button>
+    <div id="gif-search" style="display:none;margin:10px 0;padding:10px;background:rgba(0,0,0,0.5);border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex;gap:8px;">
+            <input type="text" id="gif-query" placeholder="Поиск гифки..." style="flex:1;margin:0;" onkeypress="if(event.key==='Enter'){event.preventDefault();searchGifs();}">
+            <button type="button" onclick="searchGifs()" style="padding:8px 15px;margin:0;">🔍</button>
+        </div>
+        <div id="gif-results" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;max-height:250px;overflow-y:auto;"></div>
+    </div>
+</div>
+                <button type="submit">Отправить</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const messagesDiv = document.getElementById('messages');
+        const chatForm = document.getElementById('chatForm');
+        const messageInput = document.getElementById('messageInput');
+
+        const user = {
+            id: <%= user.id %>,
+            username: '<%= user.username %>',
+            avatar: '<%= user.avatar %>'
+        };
+
+        fetch('/api/chat-history')
+            .then(response => response.json())
+            .then(messages => {
+                messages.forEach(msg => addMessageToChat(msg));
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            });
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const content = messageInput.value.trim();
+            if (content) {
+                socket.emit('chat message', {
+                    userId: user.id,
+                    username: user.username,
+                    avatar: user.avatar,
+                    content: content
+                });
+                messageInput.value = '';
+            }
+        });
+
+        socket.on('chat message', (msgData) => {
+            addMessageToChat(msgData);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        });
+
+        function addMessageToChat(msg) {
+            const div = document.createElement('div');
+            div.className = 'message';
+            div.innerHTML = `
+                <img src="${msg.avatar}" alt="${msg.username}">
+                <div class="message-content">
+                    <div class="message-header">
+                        <a href="/user/${msg.user_id}">${msg.username}</a>
+                        <small style="color: #888; margin-left: 10px;">${new Date().toLocaleTimeString()}</small>
+                    </div>
+                    <div>${msg.content}</div>
+                </div>
+            `;
+            messagesDiv.appendChild(div);
+        }
+        // ========== СИСТЕМА ГИФОК ==========
+let gifVisible = false;
+
+function toggleGifSearch() {
+    gifVisible = !gifVisible;
+    document.getElementById('gif-search').style.display = gifVisible ? 'block' : 'none';
+    if (gifVisible) {
+        document.getElementById('gif-query').focus();
+    }
+}
+
+async function searchGifs() {
+    const query = document.getElementById('gif-query').value.trim();
+    if (!query) return;
+    
+    const API_KEY = 'aFFKTuSMjdC8SzMONUofN6e5WUO8WCn6';
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=pg-13&lang=ru`;
+    
+    document.getElementById('gif-results').innerHTML = '<div class="loading"></div>';
+    
+    try {
+        const r = await fetch(url);
+        const d = await r.json();
+        const results = document.getElementById('gif-results');
+        
+        if (d.data.length === 0) {
+            results.innerHTML = '<p style="color:#888;text-align:center;">Ничего не найдено 😔</p>';
+            return;
+        }
+        
+        results.innerHTML = d.data.map(g => `
+            <div style="cursor:pointer;transition:0.3s;border-radius:8px;overflow:hidden;border:2px solid transparent;"
+                 onmouseover="this.style.borderColor='#ff9900';this.style.transform='scale(1.05)'"
+                 onmouseout="this.style.borderColor='transparent';this.style.transform='scale(1)'"
+                 onclick="insertGif('${g.images.downsized.url.replace(/'/g, "\\'")}')">
+                <img src="${g.images.fixed_height_small.url}" alt="${g.title}" style="height:80px;display:block;">
+            </div>
+        `).join('');
+    } catch(e) {
+        console.error('Ошибка загрузки гифок:', e);
+        document.getElementById('gif-results').innerHTML = '<p style="color:#ff6b6b;">Ошибка загрузки 😢</p>';
+    }
+}
+
+function insertGif(url) {
+    // Для чатов - сразу отправляем
+    const isChat = !!document.getElementById('messageInput');
+    const isPrivateChat = !!document.getElementById('chatForm') && document.getElementById('messageInput');
+    const isGroupChat = window.location.pathname.includes('/group/');
+    const isTopicComment = !!document.querySelector('textarea[name="content"]');
+    
+    if (isGroupChat) {
+        // Отправка гифки в группу
+        const formData = new FormData();
+        formData.append('groupId', groupId);
+        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
+        formData.append('isGif', '1');
+        
+        fetch('/api/send-group-message', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('gif-search').style.display = 'none';
+                    gifVisible = false;
+                }
+            });
+    } else if (isPrivateChat) {
+        // Отправка гифки в личку
+        const formData = new FormData();
+        formData.append('receiverId', receiver.id);
+        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
+        
+        fetch('/api/send-private-message', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('gif-search').style.display = 'none';
+                    gifVisible = false;
+                }
+            });
+    } else if (isTopicComment) {
+        // Вставка гифки в текст комментария/темы
+        const textarea = document.querySelector('textarea[name="content"]');
+        textarea.value += `\n<img src="${url}" style="max-width:100%;border-radius:8px;">\n`;
+        document.getElementById('gif-search').style.display = 'none';
+        gifVisible = false;
+    } else if (isChat) {
+        // Общий чат - через Socket.io
+        socket.emit('chat message', {
+            userId: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            content: `<img src="${url}" style="max-width:100%;border-radius:8px;">`
+        });
+        document.getElementById('gif-search').style.display = 'none';
+        gifVisible = false;
+    }
+}
+    </script>
+</body>
+</html>

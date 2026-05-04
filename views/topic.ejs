@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title><%= topic.title %></title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-icon-logo">🛡️</div>
+        <div class="sidebar-logo">HL2 Forum</div>
+        
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="/" class="nav-link" data-tooltip="Главная">
+                    <span class="nav-icon">🏠</span>
+                    <span class="nav-text">Главная</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/new" class="nav-link create-btn" data-tooltip="Создать тему">
+                    <span class="nav-icon">✏️</span>
+                    <span class="nav-text">Создать тему</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/chat" class="nav-link" data-tooltip="Общий чат">
+                    <span class="nav-icon">💬</span>
+                    <span class="nav-text">Общий чат</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/groups" class="nav-link" data-tooltip="Группы">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-text">Группы</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/dialogs" class="nav-link" data-tooltip="Диалоги">
+                    <span class="nav-icon">📨</span>
+                    <span class="nav-text">Диалоги</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/support" class="nav-link" data-tooltip="Поддержка">
+                    <span class="nav-icon">🆘</span>
+                    <span class="nav-text">Поддержка</span>
+                </a>
+            </li>
+            
+            <div class="nav-divider"></div>
+            
+            <% if (user) { %>
+                <li class="nav-item">
+                    <a href="/user/<%= user.id %>" class="nav-link" data-tooltip="Профиль">
+                        <span class="nav-icon">👤</span>
+                        <span class="nav-text">Профиль</span>
+                    </a>
+                </li>
+                <% if (['founder','admin','support','moderator'].includes(user.role)) { %>
+                    <li class="nav-item">
+                        <a href="/admin" class="nav-link" data-tooltip="Админ-панель" style="color: #ff9900;">
+                            <span class="nav-icon">⚙️</span>
+                            <span class="nav-text">Админ-панель</span>
+                        </a>
+                    </li>
+                <% } %>
+                <li class="nav-item">
+                    <a href="/logout" class="nav-link logout-btn" data-tooltip="Выход">
+                        <span class="nav-icon">🚪</span>
+                        <span class="nav-text">Выход</span>
+                    </a>
+                </li>
+            <% } else { %>
+                <li class="nav-item">
+                    <a href="/login" class="nav-link" data-tooltip="Вход">
+                        <span class="nav-icon">🔑</span>
+                        <span class="nav-text">Вход</span>
+                    </a>
+                </li>
+            <% } %>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1><a href="/">Half-Life 2 Fan Forum</a></h1>
+            <div class="user-menu">
+                <% if (user) { %>
+                    <img src="<%= user.avatar %>" alt="<%= user.username %>">
+                    <a href="/user/<%= user.id %>"><%= user.username %></a>
+                <% } %>
+            </div>
+        </header>
+
+        <div class="topic-view">
+            <h2><%= topic.title %></h2>
+            <div class="topic-meta">
+                <img src="<%= topic.author.avatar %>" width="40" style="border-radius: 50%;">
+                <a href="/user/<%= topic.author_id %>"><%= topic.author.username %></a>
+                <span class="side-tag <%= topic.author.side %>"><%= topic.author.side %></span>
+            </div>
+            
+            <div class="topic-body">
+                <%- topic.content %>
+                <% if (topic.image) { %>
+                    <br><img src="<%= topic.image %>" style="max-width: 100%; margin-top: 10px;">
+                <% } %>
+            </div>
+        </div>
+
+        <div class="comments-section">
+            <h3>Комментарии</h3>
+            
+            <% if (typeof error !== 'undefined' && error === 'already_rated') { %>
+                <div style="background: rgba(255,0,0,0.2); padding: 10px; border-radius: 5px; margin-bottom: 15px; text-align: center;">
+                    ⚠️ Вы уже оценили этот комментарий!
+                </div>
+            <% } %>
+            
+            <% if (comments.length === 0) { %>
+                <p>Пока нет комментариев. Будьте первым!</p>
+            <% } %>
+
+            <% comments.forEach(comment => { %>
+                <div class="comment">
+                    <div class="comment-header">
+                        <img src="<%= comment.avatar %>" width="30">
+                        <a href="/user/<%= comment.author_id %>"><%= comment.username %></a>
+                        <span class="side-tag <%= comment.side %>"><%= comment.side %></span>
+                    </div>
+                    
+                    <div class="comment-body"><%- comment.content %></div>
+                    
+                    <div class="comment-rating">
+                        <form action="/comment/<%= comment.id %>/rate" method="POST" style="display:inline;">
+                            <input type="hidden" name="type" value="like">
+                            <button type="submit">👍 <%= comment.likes %></button>
+                        </form>
+                        
+                        <form action="/comment/<%= comment.id %>/rate" method="POST" style="display:inline;">
+                            <input type="hidden" name="type" value="dislike">
+                            <button type="submit">👎 <%= comment.dislikes %></button>
+                        </form>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+
+        <% if (user) { %>
+            <div class="new-comment">
+                <h3>Оставить комментарий</h3>
+                <form action="/topic/<%= topic.id %>/comment" method="POST" enctype="multipart/form-data">
+                    <textarea name="content" rows="5" placeholder="Ваше мнение..." required></textarea><br>
+                    <label>Прикрепить изображение:</label>
+                    <input type="file" name="image"><br>
+                    <button type="submit">Отправить</button>
+                </form>
+            </div>
+        <% } else { %>
+            <p><a href="/login">Войдите</a> чтобы оставить комментарий.</p>
+        <% } %>
+    </div>
+
+    <script src="/js/music-player.js"></script>
+</body>
+</html>

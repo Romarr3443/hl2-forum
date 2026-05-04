@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Группа: <%= group.name %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            max-width: 800px;
+            margin: 20px auto;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #555;
+        }
+        .chat-header img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .chat-header-info {
+            flex: 1;
+        }
+        .members-count {
+            color: #888;
+            cursor: pointer;
+        }
+        .members-count:hover {
+            color: #ff9900;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 20px;
+            padding-right: 10px;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+        .message.sent {
+            flex-direction: row-reverse;
+        }
+        .message img.avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .message-content {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+        .message.sent .message-content {
+            background: rgba(255,153,0,0.2);
+        }
+        .message-sender {
+            color: #ff9900;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+        .message-sender a {
+            color: #ff9900;
+            text-decoration: none;
+        }
+        .message-sender a:hover {
+            text-decoration: underline;
+        }
+        .message-file {
+            margin-top: 10px;
+            max-width: 300px;
+        }
+        .message-file img, .message-file video {
+            max-width: 100%;
+            border-radius: 5px;
+        }
+        .message-time {
+            color: #888;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+        .system-message {
+            text-align: center;
+            color: #888;
+            margin: 10px 0;
+            font-style: italic;
+        }
+        .system-message .message-content {
+            background: rgba(100,100,100,0.3);
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 15px;
+        }
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .chat-input input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #555;
+            background: #333;
+            color: white;
+        }
+        .chat-input input[type="file"] {
+            width: 150px;
+        }
+        .chat-input button {
+            padding: 10px 20px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+        }
+        .modal-content {
+            background: #1a1a1a;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 10px;
+            width: 400px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .member-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-bottom: 1px solid #333;
+        }
+        .member-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .invite-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,153,0,0.1);
+            border-radius: 5px;
+        }
+        .invite-section input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 3px;
+        }
+        .invite-section button {
+            width: 100%;
+        }
+        .close-btn {
+            float: right;
+            cursor: pointer;
+            font-size: 1.5em;
+            color: #888;
+        }
+        .close-btn:hover {
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><a href="/">HL2 Forum</a></h1>
+            <div class="user-menu">
+                <% if (user) { %>
+                    <img src="<%= user.avatar %>" width="30">
+                    <a href="/user/<%= user.id %>"><%= user.username %></a>
+                    <a href="/new">Создать тему</a>
+                    <a href="/chat">Общий чат</a>
+                    <a href="/groups">Группы</a>
+                    <a href="/dialogs">Диалоги</a>
+                    <a href="/logout">Выход</a>
+                <% } %>
+            </div>
+        </header>
+
+        <div class="chat-container">
+            <div class="chat-header">
+                <img src="<%= group.avatar %>" alt="<%= group.name %>">
+                <div class="chat-header-info">
+                    <h3><%= group.name %></h3>
+                    <span class="members-count" onclick="openMembersModal()">
+                        👥 <%= members.length %> участников
+                    </span>
+                </div>
+            </div>
+
+            <div class="chat-messages" id="messages"></div>
+
+            <div class="gif-section" style="margin:5px 0;">
+    <button type="button" onclick="toggleGifSearch()" style="background:#9C27B0;color:white;padding:8px 15px;font-size:0.9em;">🎬 GIF</button>
+    <div id="gif-search" style="display:none;margin:10px 0;padding:10px;background:rgba(0,0,0,0.5);border-radius:8px;border:1px solid rgba(255,255,255,0.1);">
+        <div style="display:flex;gap:8px;">
+            <input type="text" id="gif-query" placeholder="Поиск гифки..." style="flex:1;margin:0;" onkeypress="if(event.key==='Enter'){event.preventDefault();searchGifs();}">
+            <button type="button" onclick="searchGifs()" style="padding:8px 15px;margin:0;">🔍</button>
+        </div>
+        <div id="gif-results" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;max-height:250px;overflow-y:auto;"></div>
+    </div>
+</div>
+            <form class="chat-input" id="chatForm" enctype="multipart/form-data">
+                <input type="file" id="fileInput" name="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar">
+                <input type="text" id="messageInput" placeholder="Введите сообщение..." autocomplete="off">
+                <button type="submit">Отправить</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="membersModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeMembersModal()">&times;</span>
+            <h3>Участники группы</h3>
+            <div id="membersList">
+                <% members.forEach(member => { %>
+                    <div class="member-item">
+                        <img src="<%= member.avatar %>" alt="<%= member.username %>">
+                        <span><a href="/user/<%= member.user_id %>"><%= member.username %></a></span>
+                        <% if (member.user_id === group.creator_id) { %>
+                            <span style="color: #ff9900; font-size: 0.8em;">👑 Создатель</span>
+                        <% } %>
+                    </div>
+                <% }) %>
+            </div>
+
+            <% if (user.id === group.creator_id) { %>
+                <div class="invite-section">
+                    <h4>Пригласить пользователя</h4>
+                    <input type="text" id="inviteUsername" placeholder="Введите никнейм пользователя">
+                    <button onclick="inviteUser()">Отправить приглашение</button>
+                </div>
+            <% } %>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const messagesDiv = document.getElementById('messages');
+        const chatForm = document.getElementById('chatForm');
+        const messageInput = document.getElementById('messageInput');
+        const fileInput = document.getElementById('fileInput');
+
+        const groupId = <%= group.id %>;
+        const user = {
+            id: <%= user.id %>,
+            username: '<%= user.username %>',
+            avatar: '<%= user.avatar %>'
+        };
+
+        const addedMessageIds = new Set();
+
+        socket.emit('join_group', { groupId: groupId, userId: user.id });
+
+        fetch('/api/group-messages/<%= group.id %>')
+            .then(response => response.json())
+            .then(messages => {
+                messages.forEach(msg => {
+                    addedMessageIds.add(msg.id);
+                    addMessageToChat(msg);
+                });
+                scrollToBottom();
+            });
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const content = messageInput.value.trim();
+            const file = fileInput.files[0];
+            
+            if (!content && !file) return;
+
+            const submitBtn = chatForm.querySelector('button');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Отправка...';
+
+            const formData = new FormData();
+            formData.append('groupId', groupId);
+            formData.append('content', content);
+            if (file) formData.append('file', file);
+
+            try {
+                const response = await fetch('/api/send-group-message', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    messageInput.value = '';
+                    fileInput.value = '';
+                }
+            } catch (error) {
+                console.error('Ошибка отправки:', error);
+                alert('Ошибка отправки сообщения');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Отправить';
+            }
+        });
+
+        socket.on('group_message', (msgData) => {
+            if (msgData.group_id == groupId) {
+                if (msgData.id && !addedMessageIds.has(msgData.id)) {
+                    addedMessageIds.add(msgData.id);
+                    addMessageToChat(msgData);
+                    scrollToBottom();
+                }
+            }
+        });
+
+        function addMessageToChat(msg) {
+            const isSent = msg.sender_id == user.id;
+            const isSystem = msg.username === 'Система';
+            
+            const messageElement = document.createElement('div');
+            
+            if (isSystem) {
+                messageElement.className = 'system-message';
+                messageElement.innerHTML = `
+                    <div class="message-content">
+                        <span>${msg.content}</span>
+                        <div class="message-time">${new Date(msg.created_at).toLocaleTimeString()}</div>
+                    </div>
+                `;
+            } else {
+                messageElement.className = `message ${isSent ? 'sent' : 'received'}`;
+                
+                let fileHtml = '';
+                if (msg.file_path) {
+                    const ext = msg.file_path.split('.').pop().toLowerCase();
+                    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+                        fileHtml = `<div class="message-file"><img src="${msg.file_path}" alt="Изображение" onclick="window.open(this.src)" style="cursor: pointer;"></div>`;
+                    } else if (['mp4', 'webm'].includes(ext)) {
+                        fileHtml = `<div class="message-file"><video src="${msg.file_path}" controls style="max-width: 300px;"></video></div>`;
+                    } else if (['mp3', 'wav', 'ogg'].includes(ext)) {
+                        fileHtml = `<div class="message-file"><audio src="${msg.file_path}" controls></audio></div>`;
+                    } else {
+                        const fileName = msg.file_path.split('/').pop();
+                        fileHtml = `<div class="message-file"><a href="${msg.file_path}" download style="color: #ff9900;">📎 Файл: ${fileName}</a></div>`;
+                    }
+                }
+                
+                messageElement.innerHTML = `
+                    <img class="avatar" src="${msg.avatar || '/images/default_avatar.png'}" alt="${msg.username}">
+                    <div class="message-content">
+                        ${!isSent ? `<div class="message-sender"><a href="/user/${msg.sender_id}">${msg.username}</a></div>` : ''}
+                        ${msg.content ? `<div>${msg.content}</div>` : ''}
+                        ${fileHtml}
+                        <div class="message-time">${new Date(msg.created_at).toLocaleTimeString()}</div>
+                    </div>
+                `;
+            }
+            
+            messagesDiv.appendChild(messageElement);
+        }
+
+        function scrollToBottom() {
+            setTimeout(() => {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }, 50);
+        }
+
+        messageInput.focus();
+
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        function openMembersModal() {
+            document.getElementById('membersModal').style.display = 'block';
+        }
+
+        function closeMembersModal() {
+            document.getElementById('membersModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('membersModal')) {
+                closeMembersModal();
+            }
+        }
+
+        async function inviteUser() {
+            const username = document.getElementById('inviteUsername').value.trim();
+            if (!username) return;
+
+            try {
+                const response = await fetch('/api/invite-to-group', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        groupId: groupId, 
+                        username: username 
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Приглашение отправлено!');
+                    document.getElementById('inviteUsername').value = '';
+                } else {
+                    alert(result.error || 'Ошибка приглашения');
+                }
+            } catch (error) {
+                console.error('Ошибка:', error);
+            
+           // ========== СИСТЕМА ГИФОК ==========
+let gifVisible = false;
+
+function toggleGifSearch() {
+    gifVisible = !gifVisible;
+    document.getElementById('gif-search').style.display = gifVisible ? 'block' : 'none';
+    if (gifVisible) {
+        document.getElementById('gif-query').focus();
+    }
+}
+
+async function searchGifs() {
+    const query = document.getElementById('gif-query').value.trim();
+    if (!query) return;
+    
+    const API_KEY = 'aFFKTuSMjdC8SzMONUofN6e5WUO8WCn6';
+    const url = `https://api.giphy.com/v1/gifs/search?api_key=${API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=pg-13&lang=ru`;
+    
+    document.getElementById('gif-results').innerHTML = '<div class="loading"></div>';
+    
+    try {
+        const r = await fetch(url);
+        const d = await r.json();
+        const results = document.getElementById('gif-results');
+        
+        if (d.data.length === 0) {
+            results.innerHTML = '<p style="color:#888;text-align:center;">Ничего не найдено 😔</p>';
+            return;
+        }
+        
+        results.innerHTML = d.data.map(g => `
+            <div style="cursor:pointer;transition:0.3s;border-radius:8px;overflow:hidden;border:2px solid transparent;"
+                 onmouseover="this.style.borderColor='#ff9900';this.style.transform='scale(1.05)'"
+                 onmouseout="this.style.borderColor='transparent';this.style.transform='scale(1)'"
+                 onclick="insertGif('${g.images.downsized.url.replace(/'/g, "\\'")}')">
+                <img src="${g.images.fixed_height_small.url}" alt="${g.title}" style="height:80px;display:block;">
+            </div>
+        `).join('');
+    } catch(e) {
+        console.error('Ошибка загрузки гифок:', e);
+        document.getElementById('gif-results').innerHTML = '<p style="color:#ff6b6b;">Ошибка загрузки 😢</p>';
+    }
+}
+
+function insertGif(url) {
+    // Для чатов - сразу отправляем
+    const isChat = !!document.getElementById('messageInput');
+    const isPrivateChat = !!document.getElementById('chatForm') && document.getElementById('messageInput');
+    const isGroupChat = window.location.pathname.includes('/group/');
+    const isTopicComment = !!document.querySelector('textarea[name="content"]');
+    
+    if (isGroupChat) {
+        // Отправка гифки в группу
+        const formData = new FormData();
+        formData.append('groupId', groupId);
+        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
+        formData.append('isGif', '1');
+        
+        fetch('/api/send-group-message', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('gif-search').style.display = 'none';
+                    gifVisible = false;
+                }
+            });
+    } else if (isPrivateChat) {
+        // Отправка гифки в личку
+        const formData = new FormData();
+        formData.append('receiverId', receiver.id);
+        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
+        
+        fetch('/api/send-private-message', { method: 'POST', body: formData })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('gif-search').style.display = 'none';
+                    gifVisible = false;
+                }
+            });
+    } else if (isTopicComment) {
+        // Вставка гифки в текст комментария/темы
+        const textarea = document.querySelector('textarea[name="content"]');
+        textarea.value += `\n<img src="${url}" style="max-width:100%;border-radius:8px;">\n`;
+        document.getElementById('gif-search').style.display = 'none';
+        gifVisible = false;
+    } else if (isChat) {
+        // Общий чат - через Socket.io
+        socket.emit('chat message', {
+            userId: user.id,
+            username: user.username,
+            avatar: user.avatar,
+            content: `<img src="${url}" style="max-width:100%;border-radius:8px;">`
+        });
+        document.getElementById('gif-search').style.display = 'none';
+        gifVisible = false;
+    }
+}
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль <%= profileUser.username %></title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .rating-stats { display: flex; gap: 20px; margin: 15px 0; justify-content: center; }
+        .rating-item { text-align: center; padding: 10px 20px; background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .rating-value { font-size: 1.5em; font-weight: bold; }
+        .rating-positive { color: #4CAF50; }
+        .rating-negative { color: #f44336; }
+        .rating-total { color: #ff9900; }
+        .achievements-section { margin-top: 20px; padding: 20px; background: rgba(0,0,0,0.3); border-radius: 10px; }
+        .achievements-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 15px; }
+        .achievement-card { text-align: center; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; border: 2px solid #444; transition: all 0.3s; }
+        .achievement-card.unlocked { border-color: #ff9900; background: rgba(255,153,0,0.1); }
+        .achievement-icon { font-size: 2em; margin-bottom: 10px; }
+        .achievement-name { font-weight: bold; margin-bottom: 5px; }
+        .achievement-desc { font-size: 0.8em; color: #888; }
+        .profile-tag { display: inline-block; background: #ff9900; color: black; padding: 5px 15px; border-radius: 20px; font-weight: bold; margin: 10px 0; }
+        .settings-btn { display: inline-block; background: #444; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-top: 10px; transition: all 0.3s; }
+        .settings-btn:hover { background: #555; transform: translateY(-2px); }
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-icon-logo">🛡️</div>
+        <div class="sidebar-logo">HL2 Forum</div>
+        <ul class="nav-list">
+            <li class="nav-item"><a href="/" class="nav-link" data-tooltip="Главная"><span class="nav-icon">🏠</span><span class="nav-text">Главная</span></a></li>
+            <li class="nav-item"><a href="/new" class="nav-link create-btn" data-tooltip="Создать тему"><span class="nav-icon">✏️</span><span class="nav-text">Создать тему</span></a></li>
+            <li class="nav-item"><a href="/chat" class="nav-link" data-tooltip="Общий чат"><span class="nav-icon">💬</span><span class="nav-text">Общий чат</span></a></li>
+            <li class="nav-item"><a href="/groups" class="nav-link" data-tooltip="Группы"><span class="nav-icon">👥</span><span class="nav-text">Группы</span></a></li>
+            <li class="nav-item"><a href="/dialogs" class="nav-link" data-tooltip="Диалоги"><span class="nav-icon">📨</span><span class="nav-text">Диалоги</span></a></li>
+            <li class="nav-item"><a href="/support" class="nav-link" data-tooltip="Поддержка"><span class="nav-icon">🆘</span><span class="nav-text">Поддержка</span></a></li>
+            <div class="nav-divider"></div>
+            <% if (user) { %>
+                <li class="nav-item"><a href="/user/<%= user.id %>" class="nav-link active" data-tooltip="Профиль"><span class="nav-icon">👤</span><span class="nav-text">Профиль</span></a></li>
+                <% if (['founder','admin','support','moderator'].includes(user.role)) { %>
+                    <li class="nav-item"><a href="/admin" class="nav-link" data-tooltip="Админ-панель" style="color:#ff9900;"><span class="nav-icon">⚙️</span><span class="nav-text">Админ-панель</span></a></li>
+                <% } %>
+                <li class="nav-item"><a href="/logout" class="nav-link logout-btn" data-tooltip="Выход"><span class="nav-icon">🚪</span><span class="nav-text">Выход</span></a></li>
+            <% } %>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1><a href="/">Half-Life 2 Fan Forum</a></h1>
+            <div class="user-menu">
+                <% if (user) { %>
+                    <img src="<%= user.avatar %>" alt="<%= user.username %>">
+                    <a href="/user/<%= user.id %>"><%= user.username %></a>
+                <% } %>
+            </div>
+        </header>
+
+        <div class="profile-card">
+            <img src="<%= profileUser.avatar %>" width="100" alt="<%= profileUser.username %>">
+            <h2><%= profileUser.username %></h2>
+            
+            <% if (profileUser.tag) { %>
+                <div class="profile-tag"><%= profileUser.tag %></div>
+            <% } %>
+            
+            <p>Сторона: <span class="side-tag <%= profileUser.side %>"><%= profileUser.side %></span></p>
+            <p>Рейтинг: <%= profileUser.rating %></p>
+            
+            <div class="rating-stats">
+                <div class="rating-item">
+                    <div class="rating-value rating-positive">👍 <%= positiveRating %></div>
+                    <div>Положительный</div>
+                </div>
+                <div class="rating-item">
+                    <div class="rating-value rating-total"><%= profileUser.rating %></div>
+                    <div>Общий рейтинг</div>
+                </div>
+                <div class="rating-item">
+                    <div class="rating-value rating-negative">👎 <%= negativeRating %></div>
+                    <div>Отрицательный</div>
+                </div>
+            </div>
+            
+            <% if (user && user.id !== profileUser.id) { %>
+                <div style="margin-top: 15px;">
+                    <a href="/chat/<%= profileUser.id %>" style="background: #ff9900; color: black; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                        ✉️ Написать сообщение
+                    </a>
+                </div>
+            <% } %>
+            
+            <% if (user && user.id === profileUser.id) { %>
+                <a href="/settings" class="settings-btn">🔒 Настройки безопасности</a>
+                <div class="edit-profile">
+                    <h3>Редактировать профиль</h3>
+                    <form action="/update_profile" method="POST" enctype="multipart/form-data">
+                        <label>Ник:</label>
+                        <input type="text" name="username" value="<%= user.username %>"><br>
+                        <label>Сторона:</label>
+                        <select name="side">
+                            <option value="Resistance" <%= user.side === 'Resistance' ? 'selected' : '' %>>Сопротивление</option>
+                            <option value="Civilian" <%= user.side === 'Civilian' ? 'selected' : '' %>>Гражданские</option>
+                            <option value="Combine" <%= user.side === 'Combine' ? 'selected' : '' %>>Альянс</option>
+                        </select><br>
+                        <label>Аватарка:</label>
+                        <input type="file" name="avatar"><br>
+                        <button type="submit">Сохранить</button>
+                    </form>
+                </div>
+            <% } %>
+        </div>
+
+        <div class="achievements-section">
+            <h3>🏆 Достижения</h3>
+            <div class="achievements-grid" id="achievements-grid">Загрузка...</div>
+        </div>
+
+        <div class="profile-comments-section">
+            <h3>Отзывы на странице пользователя</h3>
+            <% if (profileComments && profileComments.length > 0) { %>
+                <% profileComments.forEach(function(comment) { %>
+                    <div class="profile-comment">
+                        <div class="comment-header">
+                            <img src="<%= comment.avatar %>" width="30" alt="<%= comment.username %>">
+                            <a href="/user/<%= comment.author_id %>"><%= comment.username %></a>
+                            <small><%= new Date(comment.created_at).toLocaleDateString('ru-RU') %></small>
+                            <% if (user && user.id === comment.author_id) { %>
+                                <form action="/user/<%= profileUser.id %>/comment/<%= comment.id %>/delete" method="POST" style="display:inline;">
+                                    <button type="submit" class="delete-btn">Удалить</button>
+                                </form>
+                            <% } %>
+                        </div>
+                        <div class="comment-body"><%= comment.content %></div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <p>Пока нет отзывов. Будьте первым!</p>
+            <% } %>
+
+            <% if (user && user.id !== profileUser.id) { %>
+                <div class="new-comment">
+                    <h4>Оставить отзыв</h4>
+                    <form action="/user/<%= profileUser.id %>/comment" method="POST">
+                        <textarea name="content" rows="3" placeholder="Ваш отзыв о пользователе..." required></textarea><br>
+                        <button type="submit">Отправить</button>
+                    </form>
+                </div>
+            <% } else if (!user) { %>
+                <p><a href="/login">Войдите</a> чтобы оставить отзыв.</p>
+            <% } %>
+        </div>
+
+        <div class="user-history">
+            <h3>Созданные темы:</h3>
+            <% topics.forEach(function(topic) { %>
+                <div><a href="/topic/<%= topic.id %>"><%= topic.title %></a> (<%= new Date(topic.created_at).toLocaleDateString('ru-RU') %>)</div>
+            <% }); %>
+
+            <h3>Последние комментарии:</h3>
+            <% comments.forEach(function(comment) { %>
+                <div>
+                    В теме "<a href="/topic/<%= comment.topic_id %>"><%= comment.title %></a>": 
+                    <%= comment.content.substring(0, 50) %>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+
+    <script>
+        fetch('/api/achievements/<%= profileUser.id %>')
+            .then(function(response) { return response.json(); })
+            .then(function(achievements) {
+                var grid = document.getElementById('achievements-grid');
+                grid.innerHTML = achievements.map(function(a) {
+                    return '<div class="achievement-card ' + (a.unlocked ? 'unlocked' : 'locked') + '">' +
+                        '<div class="achievement-icon">' + a.icon + '</div>' +
+                        '<div class="achievement-name">' + a.name + '</div>' +
+                        '<div class="achievement-desc">' + a.description + '</div>' +
+                        (a.unlocked ? '<div style="color:#4CAF50;">✅ Получено</div>' : '<div style="color:#888;">🔒 Нужно ' + a.min_rating + '</div>') +
+                    '</div>';
+                }).join('');
+            })
+            .catch(function(err) {
+                console.error('Ошибка загрузки достижений:', err);
+            });
+    </script>
+</body>
+</html>
