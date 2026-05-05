@@ -1,10 +1,24 @@
-const sqlite3 = require('sqlite3').verbose();
-const db = new sqlite3.Database('./hl2forum.db', (err) => {
-    if (err) console.error(err.message);
-    console.log('База данных подключена.');
-});
+const initSqlJs = require('sql.js');
+const fs = require('fs');
+const path = require('path');
 
-db.serialize(() => {
+const DB_PATH = path.join(__dirname, 'hl2forum.db');
+
+let db;
+
+// Загружаем или создаём базу данных
+async function initDatabase() {
+    const SQL = await initSqlJs();
+    
+    // Если файл существует - загружаем его
+    if (fs.existsSync(DB_PATH)) {
+        const fileBuffer = fs.readFileSync(DB_PATH);
+        db = new SQL.Database(fileBuffer);
+    } else {
+        db = new SQL.Database();
+    }
+    
+    // Создаём таблицы
     db.run(`CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE,
@@ -236,7 +250,6 @@ db.serialize(() => {
         FOREIGN KEY(user_id) REFERENCES users(id)
     )`);
 
-    // Таблица настроек пользователя
     db.run(`CREATE TABLE IF NOT EXISTS user_settings (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER UNIQUE,
@@ -246,50 +259,151 @@ db.serialize(() => {
         FOREIGN KEY(user_id) REFERENCES users(id)
     )`);
 
-    // В database.js добавить:
-db.run(`CREATE TABLE IF NOT EXISTS group_roles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    group_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    color TEXT DEFAULT '#ffffff',
-    can_manage_roles INTEGER DEFAULT 0,
-    can_kick INTEGER DEFAULT 0,
-    can_ban INTEGER DEFAULT 0,
-    can_delete_messages INTEGER DEFAULT 0,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(group_id) REFERENCES chat_groups(id)
-)`);
+    db.run(`CREATE TABLE IF NOT EXISTS group_roles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        group_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        color TEXT DEFAULT '#ffffff',
+        can_manage_roles INTEGER DEFAULT 0,
+        can_kick INTEGER DEFAULT 0,
+        can_ban INTEGER DEFAULT 0,
+        can_delete_messages INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(group_id) REFERENCES chat_groups(id)
+    )`);
 
-db.run(`CREATE TABLE IF NOT EXISTS group_member_roles (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    member_id INTEGER NOT NULL,
-    role_id INTEGER NOT NULL,
-    FOREIGN KEY(member_id) REFERENCES group_members(id),
-    FOREIGN KEY(role_id) REFERENCES group_roles(id),
-    UNIQUE(member_id, role_id)
-)`);
-});
+    db.run(`CREATE TABLE IF NOT EXISTS group_member_roles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        member_id INTEGER NOT NULL,
+        role_id INTEGER NOT NULL,
+        FOREIGN KEY(member_id) REFERENCES group_members(id),
+        FOREIGN KEY(role_id) REFERENCES group_roles(id),
+        UNIQUE(member_id, role_id)
+    )`);
 
-// Добавляем достижения только если таблица пуста
-db.all(`SELECT COUNT(*) as count FROM achievements`, [], (err, result) => {
-    if (err) return;
-    
-    if (result[0].count === 0) {
+    // Добавляем достижения
+    const count = db.exec(`SELECT COUNT(*) as cnt FROM achievements`);
+    if (count[0]?.values[0]?.[0] === 0) {
         const achievements = [
             ['Новичок', 'Новичок', 0, 'Только начал свой путь', '🌟'],
+            ['Хедкраб', 'Хедкраб', 5, 'Любитель хедкрабов', '🦀'],
             ['Активист', 'Активист', 10, 'Активный участник форума', '⭐'],
+            ['Вортигонт', 'Вортигонт', 25, 'Друг вортигонтов', '👽'],
             ['Ветеран', 'Ветеран', 50, 'Опытный участник', '💫'],
             ['Элита', 'Элита', 100, 'Элита форума', '👑'],
-            ['Легенда', 'Легенда', 500, 'Легенда HL2 Форума', '🔥'],
-            ['Хедкраб', 'Хедкраб', 5, 'Любитель хедкрабов', '🦀'],
-            ['Вортигонт', 'Вортигонт', 25, 'Друг вортигонтов', '👽'],
-            ['G-Man', 'G-Man', 200, 'Загадочная личность', '🎩']
+            ['G-Man', 'G-Man', 200, 'Загадочная личность', '🎩'],
+            ['Легенда', 'Легенда', 500, 'Легенда HL2 Форума', '🔥']
         ];
         const stmt = db.prepare(`INSERT INTO achievements (name, tag, min_rating, description, icon) VALUES (?, ?, ?, ?, ?)`);
         achievements.forEach(a => stmt.run(a));
-        stmt.finalize();
-        console.log('✅ Достижения добавлены!');
+        stmt.free();
     }
-});
 
-module.exports = db;
+    saveDatabase();
+    console.log('✅ База данных готова!');
+    return db;
+}
+
+// Сохраняем базу в файл
+function saveDatabase() {
+    if (db) {
+        const data = db.export();
+        const buffer = Buffer.from(data);
+        fs.writeFileSync(DB_PATH, buffer);
+    }
+}
+
+// Обёртки для совместимости со старым кодом
+module.exports = {
+    init: initDatabase,
+    
+    // Сохраняем периодически
+    save: saveDatabase,
+    
+    // Методы эмулирующие sqlite3 API
+    run: function(sql, params, callback) {
+        try {
+            if (!db) return callback?.('База не инициализирована');
+            const result = db.run(sql, params || []);
+            saveDatabase();
+            if (callback) callback.call({ changes: result, lastID: db.exec('SELECT last_insert_rowid()')[0]?.values[0]?.[0] }, null);
+            return { changes: result, lastID: db.exec('SELECT last_insert_rowid()')[0]?.values[0]?.[0] };
+        } catch (err) {
+            if (callback) callback(err);
+            throw err;
+        }
+    },
+    
+    get: function(sql, params, callback) {
+        try {
+            if (!db) return callback?.('База не инициализирована');
+            const stmt = db.prepare(sql);
+            if (params) stmt.bind(params);
+            let result = null;
+            if (stmt.step()) {
+                const columns = stmt.getColumnNames();
+                const values = stmt.get();
+                result = {};
+                columns.forEach((col, i) => result[col] = values[i]);
+            }
+            stmt.free();
+            if (callback) callback(null, result);
+            return result;
+        } catch (err) {
+            if (callback) callback(err);
+            throw err;
+        }
+    },
+    
+    all: function(sql, params, callback) {
+        try {
+            if (!db) return callback?.('База не инициализирована');
+            const results = [];
+            const stmt = db.prepare(sql);
+            if (params) stmt.bind(params);
+            while (stmt.step()) {
+                const columns = stmt.getColumnNames();
+                const values = stmt.get();
+                const row = {};
+                columns.forEach((col, i) => row[col] = values[i]);
+                results.push(row);
+            }
+            stmt.free();
+            if (callback) callback(null, results);
+            return results;
+        } catch (err) {
+            if (callback) callback(err);
+            throw err;
+        }
+    },
+    
+    exec: function(sql) {
+        return db?.exec(sql);
+    },
+    
+    prepare: function(sql) {
+        const stmt = db.prepare(sql);
+        return {
+            run: function(params) {
+                if (params) stmt.bind(params);
+                stmt.step();
+                stmt.free();
+                saveDatabase();
+            },
+            all: function(params) {
+                if (params) stmt.bind(params);
+                const results = [];
+                while (stmt.step()) {
+                    results.push(stmt.getAsObject());
+                }
+                stmt.free();
+                return results;
+            }
+        };
+    }
+};
+
+// Автосохранение каждые 5 минут
+setInterval(() => {
+    if (db) saveDatabase();
+}, 300000);
