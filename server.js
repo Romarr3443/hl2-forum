@@ -13,15 +13,7 @@ const { moderateMessage } = require('./moderation');
 
 const PORT = process.env.PORT || 3000;
 
-let db;
-
-database.init().then(d => {
-    db = d;
-    console.log('✅ База данных загружена!');
-}).catch(err => {
-    console.error('Ошибка загрузки базы:', err);
-    process.exit(1);
-});
+const db = require('./database');
 
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
