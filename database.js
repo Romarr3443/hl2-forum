@@ -7,403 +7,110 @@ const DB_PATH = path.join(__dirname, 'hl2forum.db');
 let db;
 
 // Загружаем или создаём базу данных
-async function initDatabase() {
-    const SQL = await initSqlJs();
-    
-    // Если файл существует - загружаем его
-    if (fs.existsSync(DB_PATH)) {
-        const fileBuffer = fs.readFileSync(DB_PATH);
-        db = new SQL.Database(fileBuffer);
-    } else {
-        db = new SQL.Database();
-    }
-    
-    // Создаём таблицы
-    db.run(`CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT,
-        avatar TEXT DEFAULT '/images/default_avatar.png',
-        side TEXT DEFAULT 'Neutral',
-        rating INTEGER DEFAULT 0,
-        tag TEXT DEFAULT '',
-        role TEXT DEFAULT 'user',
-        custom_prefix TEXT DEFAULT '',
-        is_banned INTEGER DEFAULT 0,
-        is_muted INTEGER DEFAULT 0,
-        muted_until DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
+function initDatabase() {
+    return initSqlJs().then(SQL => {
+        if (fs.existsSync(DB_PATH)) {
+            const buffer = fs.readFileSync(DB_PATH);
+            db = new SQL.Database(buffer);
+        } else {
+            db = new SQL.Database();
+        }
 
-    db.run(`CREATE TABLE IF NOT EXISTS topics (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT,
-        content TEXT,
-        image TEXT,
-        author_id INTEGER,
-        category TEXT DEFAULT 'general',
-        is_deleted INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(author_id) REFERENCES users(id)
-    )`);
+        // Создаём таблицы
+        db.run(`CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE, password TEXT, avatar TEXT DEFAULT '/images/default_avatar.png', side TEXT DEFAULT 'Neutral', rating INTEGER DEFAULT 0, tag TEXT DEFAULT '', role TEXT DEFAULT 'user', is_banned INTEGER DEFAULT 0, is_muted INTEGER DEFAULT 0, muted_until DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS topics (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, image TEXT, author_id INTEGER, is_deleted INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, topic_id INTEGER, author_id INTEGER, content TEXT, likes INTEGER DEFAULT 0, dislikes INTEGER DEFAULT 0, is_deleted INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS chat_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, username TEXT, avatar TEXT, content TEXT, is_deleted INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS private_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender_id INTEGER, receiver_id INTEGER, content TEXT, file_path TEXT, is_deleted INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS chat_groups (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, creator_id INTEGER, is_public INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS group_members (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER, user_id INTEGER, status TEXT DEFAULT 'active', UNIQUE(group_id, user_id))`);
+        db.run(`CREATE TABLE IF NOT EXISTS group_messages (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER, sender_id INTEGER, content TEXT, file_path TEXT, is_deleted INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS bans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, admin_id INTEGER, reason TEXT, banned_until DATETIME, is_permanent INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS mutes (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, admin_id INTEGER, reason TEXT, muted_until DATETIME, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS likes_track (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, comment_id INTEGER, value INTEGER DEFAULT 1, UNIQUE(user_id, comment_id))`);
+        db.run(`CREATE TABLE IF NOT EXISTS achievements (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, tag TEXT, min_rating INTEGER, description TEXT, icon TEXT DEFAULT '🏆')`);
+        db.run(`CREATE TABLE IF NOT EXISTS user_achievements (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, achievement_id INTEGER, UNIQUE(user_id, achievement_id))`);
+        db.run(`CREATE TABLE IF NOT EXISTS support_tickets (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, category TEXT, title TEXT, description TEXT, status TEXT DEFAULT 'open', assigned_to INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS ticket_replies (id INTEGER PRIMARY KEY AUTOINCREMENT, ticket_id INTEGER, user_id INTEGER, content TEXT, is_staff INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS user_ips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, ip_address TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS permanent_bans (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, ip_address TEXT, reason TEXT, banned_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS appeals (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, type TEXT DEFAULT 'ban', reason TEXT, status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS user_settings (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE, do_not_message INTEGER DEFAULT 0, show_online INTEGER DEFAULT 1)`);
+        db.run(`CREATE TABLE IF NOT EXISTS group_roles (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER, name TEXT, color TEXT DEFAULT '#ffffff')`);
+        db.run(`CREATE TABLE IF NOT EXISTS group_member_roles (id INTEGER PRIMARY KEY AUTOINCREMENT, member_id INTEGER, role_id INTEGER, UNIQUE(member_id, role_id))`);
+        db.run(`CREATE TABLE IF NOT EXISTS profile_comments (id INTEGER PRIMARY KEY AUTOINCREMENT, target_user_id INTEGER, author_id INTEGER, content TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+        db.run(`CREATE TABLE IF NOT EXISTS group_invites (id INTEGER PRIMARY KEY AUTOINCREMENT, group_id INTEGER, sender_id INTEGER, receiver_id INTEGER, status TEXT DEFAULT 'pending', UNIQUE(group_id, receiver_id))`);
 
-    db.run(`CREATE TABLE IF NOT EXISTS comments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        topic_id INTEGER,
-        author_id INTEGER,
-        content TEXT,
-        likes INTEGER DEFAULT 0,
-        dislikes INTEGER DEFAULT 0,
-        is_deleted INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(topic_id) REFERENCES topics(id),
-        FOREIGN KEY(author_id) REFERENCES users(id)
-    )`);
-    
-    db.run(`CREATE TABLE IF NOT EXISTS profile_comments (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        target_user_id INTEGER,
-        author_id INTEGER,
-        content TEXT,
-        is_deleted INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(target_user_id) REFERENCES users(id),
-        FOREIGN KEY(author_id) REFERENCES users(id)
-    )`);
-    
-    db.run(`CREATE TABLE IF NOT EXISTS chat_messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        username TEXT,
-        avatar TEXT,
-        content TEXT,
-        is_deleted INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )`);
-    
-    db.run(`CREATE TABLE IF NOT EXISTS private_messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sender_id INTEGER,
-        receiver_id INTEGER,
-        content TEXT,
-        file_path TEXT,
-        group_id INTEGER DEFAULT NULL,
-        is_deleted INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(sender_id) REFERENCES users(id),
-        FOREIGN KEY(receiver_id) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS chat_groups (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        creator_id INTEGER NOT NULL,
-        is_public INTEGER DEFAULT 0,
-        avatar TEXT DEFAULT '/images/group_default.png',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(creator_id) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS group_members (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        group_id INTEGER NOT NULL,
-        user_id INTEGER NOT NULL,
-        status TEXT DEFAULT 'active',
-        joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(group_id) REFERENCES chat_groups(id),
-        FOREIGN KEY(user_id) REFERENCES users(id),
-        UNIQUE(group_id, user_id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS group_invites (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        group_id INTEGER NOT NULL,
-        sender_id INTEGER NOT NULL,
-        receiver_id INTEGER NOT NULL,
-        status TEXT DEFAULT 'pending',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(group_id) REFERENCES chat_groups(id),
-        FOREIGN KEY(sender_id) REFERENCES users(id),
-        FOREIGN KEY(receiver_id) REFERENCES users(id),
-        UNIQUE(group_id, receiver_id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS group_messages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        group_id INTEGER NOT NULL,
-        sender_id INTEGER NOT NULL,
-        content TEXT,
-        file_path TEXT,
-        is_deleted INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(group_id) REFERENCES chat_groups(id),
-        FOREIGN KEY(sender_id) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS bans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        admin_id INTEGER NOT NULL,
-        reason TEXT,
-        banned_until DATETIME,
-        is_permanent INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id),
-        FOREIGN KEY(admin_id) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS mutes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        admin_id INTEGER NOT NULL,
-        reason TEXT,
-        muted_until DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id),
-        FOREIGN KEY(admin_id) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS likes_track (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        comment_id INTEGER NOT NULL,
-        value INTEGER DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id),
-        FOREIGN KEY(comment_id) REFERENCES comments(id),
-        UNIQUE(user_id, comment_id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS achievements (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        tag TEXT NOT NULL,
-        min_rating INTEGER NOT NULL,
-        description TEXT,
-        icon TEXT DEFAULT '🏆'
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS user_achievements (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        achievement_id INTEGER NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id),
-        FOREIGN KEY(achievement_id) REFERENCES achievements(id),
-        UNIQUE(user_id, achievement_id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS support_tickets (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        category TEXT DEFAULT 'question',
-        title TEXT NOT NULL,
-        description TEXT,
-        status TEXT DEFAULT 'open',
-        assigned_to INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id),
-        FOREIGN KEY(assigned_to) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS ticket_replies (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ticket_id INTEGER NOT NULL,
-        user_id INTEGER NOT NULL,
-        content TEXT,
-        is_staff INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(ticket_id) REFERENCES support_tickets(id),
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS user_ips (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        ip_address TEXT NOT NULL,
-        user_agent TEXT,
-        fingerprint TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS permanent_bans (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        ip_address TEXT,
-        fingerprint TEXT,
-        reason TEXT,
-        banned_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS appeals (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        ban_id INTEGER,
-        type TEXT DEFAULT 'ban',
-        reason TEXT NOT NULL,
-        status TEXT DEFAULT 'pending',
-        reviewed_by INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS user_settings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER UNIQUE,
-        do_not_message INTEGER DEFAULT 0,
-        show_online INTEGER DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS group_roles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        group_id INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        color TEXT DEFAULT '#ffffff',
-        can_manage_roles INTEGER DEFAULT 0,
-        can_kick INTEGER DEFAULT 0,
-        can_ban INTEGER DEFAULT 0,
-        can_delete_messages INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(group_id) REFERENCES chat_groups(id)
-    )`);
-
-    db.run(`CREATE TABLE IF NOT EXISTS group_member_roles (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        member_id INTEGER NOT NULL,
-        role_id INTEGER NOT NULL,
-        FOREIGN KEY(member_id) REFERENCES group_members(id),
-        FOREIGN KEY(role_id) REFERENCES group_roles(id),
-        UNIQUE(member_id, role_id)
-    )`);
-
-    // Добавляем достижения
-    const count = db.exec(`SELECT COUNT(*) as cnt FROM achievements`);
-    if (count[0]?.values[0]?.[0] === 0) {
-        const achievements = [
-            ['Новичок', 'Новичок', 0, 'Только начал свой путь', '🌟'],
-            ['Хедкраб', 'Хедкраб', 5, 'Любитель хедкрабов', '🦀'],
-            ['Активист', 'Активист', 10, 'Активный участник форума', '⭐'],
-            ['Вортигонт', 'Вортигонт', 25, 'Друг вортигонтов', '👽'],
-            ['Ветеран', 'Ветеран', 50, 'Опытный участник', '💫'],
-            ['Элита', 'Элита', 100, 'Элита форума', '👑'],
-            ['G-Man', 'G-Man', 200, 'Загадочная личность', '🎩'],
-            ['Легенда', 'Легенда', 500, 'Легенда HL2 Форума', '🔥']
-        ];
-        const stmt = db.prepare(`INSERT INTO achievements (name, tag, min_rating, description, icon) VALUES (?, ?, ?, ?, ?)`);
-        achievements.forEach(a => stmt.run(a));
-        stmt.free();
-    }
-
-    saveDatabase();
-    console.log('✅ База данных готова!');
-    return db;
+        saveDatabase();
+        console.log('✅ База данных готова!');
+        return module.exports;
+    });
 }
 
-// Сохраняем базу в файл
 function saveDatabase() {
     if (db) {
         const data = db.export();
-        const buffer = Buffer.from(data);
-        fs.writeFileSync(DB_PATH, buffer);
+        fs.writeFileSync(DB_PATH, Buffer.from(data));
     }
 }
 
-// Обёртки для совместимости со старым кодом
+// Экспортируем методы
 module.exports = {
     init: initDatabase,
     
-    // Сохраняем периодически
-    save: saveDatabase,
-    
-    // Методы эмулирующие sqlite3 API
     run: function(sql, params, callback) {
         try {
-            if (!db) return callback?.('База не инициализирована');
-            const result = db.run(sql, params || []);
+            db.run(sql, params);
             saveDatabase();
-            if (callback) callback.call({ changes: result, lastID: db.exec('SELECT last_insert_rowid()')[0]?.values[0]?.[0] }, null);
-            return { changes: result, lastID: db.exec('SELECT last_insert_rowid()')[0]?.values[0]?.[0] };
+            if (callback) callback.call({ changes: 1 }, null);
         } catch (err) {
             if (callback) callback(err);
-            throw err;
         }
     },
     
     get: function(sql, params, callback) {
         try {
-            if (!db) return callback?.('База не инициализирована');
             const stmt = db.prepare(sql);
             if (params) stmt.bind(params);
             let result = null;
             if (stmt.step()) {
-                const columns = stmt.getColumnNames();
-                const values = stmt.get();
+                const cols = stmt.getColumnNames();
+                const vals = stmt.get();
                 result = {};
-                columns.forEach((col, i) => result[col] = values[i]);
+                cols.forEach((c, i) => result[c] = vals[i]);
             }
             stmt.free();
             if (callback) callback(null, result);
-            return result;
         } catch (err) {
             if (callback) callback(err);
-            throw err;
         }
     },
     
     all: function(sql, params, callback) {
         try {
-            if (!db) return callback?.('База не инициализирована');
             const results = [];
             const stmt = db.prepare(sql);
             if (params) stmt.bind(params);
             while (stmt.step()) {
-                const columns = stmt.getColumnNames();
-                const values = stmt.get();
+                const cols = stmt.getColumnNames();
+                const vals = stmt.get();
                 const row = {};
-                columns.forEach((col, i) => row[col] = values[i]);
+                cols.forEach((c, i) => row[c] = vals[i]);
                 results.push(row);
             }
             stmt.free();
             if (callback) callback(null, results);
-            return results;
         } catch (err) {
             if (callback) callback(err);
-            throw err;
         }
     },
     
     exec: function(sql) {
-        return db?.exec(sql);
+        return db ? db.exec(sql) : [];
     },
     
-    prepare: function(sql) {
-        const stmt = db.prepare(sql);
-        return {
-            run: function(params) {
-                if (params) stmt.bind(params);
-                stmt.step();
-                stmt.free();
-                saveDatabase();
-            },
-            all: function(params) {
-                if (params) stmt.bind(params);
-                const results = [];
-                while (stmt.step()) {
-                    results.push(stmt.getAsObject());
-                }
-                stmt.free();
-                return results;
-            }
-        };
-    }
+    save: saveDatabase
 };
 
-// Автосохранение каждые 5 минут
-setInterval(() => {
-    if (db) saveDatabase();
-}, 300000);
+// Инициализируем базу сразу
+initDatabase();
