@@ -167,7 +167,7 @@ app.get('/make-me-founder/:secret', (req, res) => {
     if (req.params.secret !== 'hl2secret2026') return res.send('Неверный ключ!');
     
     db.run(`UPDATE users SET role = 'founder', tag = '👑 Основатель' WHERE username = ?`, 
-        ['ТВОЙ_НИК'],  // ЗАМЕНИ НА СВОЙ НИК!
+        ['Сифан'],  // ЗАМЕНИ НА СВОЙ НИК!
         (err) => {
             if (err) return res.send('Ошибка: ' + err.message);
             res.send('✅ Ты теперь основатель! <a href="/">На форум</a>');
