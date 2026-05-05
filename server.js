@@ -1,4 +1,5 @@
 const express = require('express');
+const app = express();
 const db = require('./database');
 const multer = require('multer');
 const cookieParser = require('cookie-parser');
@@ -7,6 +8,8 @@ const fs = require('fs');
 const http = require('http');
 const { Server } = require("socket.io");
 const bcrypt = require('bcryptjs');
+const { isAdmin, isFounder, isModerator, isStaff } = require('./admin');
+const { moderateMessage } = require('./moderation');
 
 const PORT = process.env.PORT || 3000;
 
