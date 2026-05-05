@@ -1,22 +1,6 @@
 const express = require('express');
 const app = express();
-const initSqlJs = require('sql.js');
-const fs = require('fs');
 const database = require('./database');
-let db;
-
-// Инициализируем базу перед запуском сервера
-database.init().then(d => {
-    db = d;
-    console.log('✅ База данных загружена!');
-}).catch(err => {
-    console.error('Ошибка загрузки базы:', err);
-    process.exit(1);
-});
-// Автосохранение каждые 5 минут
-setInterval(() => {
-    if (db) saveDatabase();
-}, 300000);
 const multer = require('multer');
 const cookieParser = require('cookie-parser');
 const path = require('path');
@@ -28,6 +12,16 @@ const { isAdmin, isFounder, isModerator, isStaff } = require('./admin');
 const { moderateMessage } = require('./moderation');
 
 const PORT = process.env.PORT || 3000;
+
+let db;
+
+database.init().then(d => {
+    db = d;
+    console.log('✅ База данных загружена!');
+}).catch(err => {
+    console.error('Ошибка загрузки базы:', err);
+    process.exit(1);
+});
 
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
