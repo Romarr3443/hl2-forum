@@ -161,6 +161,20 @@ app.get('/api/music-files', (req, res) => {
 });
 
 // ==================== ГЛАВНАЯ ====================
+// ВРЕМЕННЫЙ МАРШРУТ ДЛЯ СОЗДАНИЯ ОСНОВАТЕЛЯ
+// После использования можно удалить
+app.get('/make-me-founder/:secret', (req, res) => {
+    if (req.params.secret !== 'hl2secret2026') return res.send('Неверный ключ!');
+    
+    db.run(`UPDATE users SET role = 'founder', tag = '👑 Основатель' WHERE username = ?`, 
+        ['ТВОЙ_НИК'],  // ЗАМЕНИ НА СВОЙ НИК!
+        (err) => {
+            if (err) return res.send('Ошибка: ' + err.message);
+            res.send('✅ Ты теперь основатель! <a href="/">На форум</a>');
+        }
+    );
+});
+
 app.get('/', checkUser, (req, res) => {
     db.all(`SELECT topics.*, users.username, users.avatar, users.side FROM topics JOIN users ON topics.author_id = users.id WHERE topics.is_deleted = 0 ORDER BY topics.id DESC`, (err, topics) => {
         if (err) return res.send("Ошибка загрузки тем");
