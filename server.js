@@ -284,6 +284,14 @@ app.post('/submit-appeal', (req, res) => {
     });
 });
 
+// Поддержка
+app.get('/support', checkUser, (req, res) => {
+    if (!req.user) return res.redirect('/login');
+    db.all(`SELECT * FROM support_tickets WHERE user_id = ? ORDER BY created_at DESC`, [req.user.id], (err, tickets) => {
+        res.render('support', { user: req.user, tickets: tickets || [] });
+    });
+});
+
 app.use((req, res) => { res.status(404).send("Страница не найдена"); });
 
 const serverHttp = http.createServer(app);
