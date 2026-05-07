@@ -462,6 +462,41 @@ app.post('/submit-appeal', (req, res) => {
     });
 });
 
+// Диалоги
+app.get('/dialogs', checkUser, (req, res) => {
+    if (!req.user) return res.redirect('/login');
+    res.render('dialogs', { user: req.user });
+});
+
+app.get('/api/dialogs', checkUser, (req, res) => {
+    const userId = req.user.id;
+    db.all(`SELECT pm.*, CASE WHEN pm.sender_id = ? THEN pm.receiver_id ELSE pm.sender_id END as dialog_user_id, u.username, u.avatar FROM private_messages pm JOIN users u ON (CASE WHEN pm.sender_id = ? THEN pm.receiver_id ELSE pm.sender_id END = u.id) WHERE (pm.sender_id = ? OR pm.receiver_id = ?) AND pm.is_deleted = 0 GROUP BY dialog_user_id ORDER BY pm.created_at DESC`, [userId, userId, userId, userId], (err, dialogs) => {
+        res.json(dialogs || []);
+    });
+});
+
+// Личный чат
+app.get('/chat/:userId', checkUser, (req, res) => {
+    if (!req.user) return res.redirect('/login');
+    db.get(`SELECT * FROM users WHERE id = ?`, [req.params.userId], (err, receiver) => {
+        if (!receiver) return res.send("Пользователь не найден");
+        res.render('private_chat', { user: req.user, receiver: receiver });
+    });
+});
+
+app.get('/api/private-messages/:userId', checkUser, (req, res) => {
+    const sid = req.user.id, rid = req.params.userId;
+    db.all(`SELECT * FROM private_messages WHERE ((sender_id = ? AND receiver_id = ?) OR (sender_id = ? AND receiver_id = ?)) AND is_deleted = 0 ORDER BY created_at ASC`, [sid, rid, rid, sid], (err, m) => res.json(m || []));
+});
+
+app.post('/api/send-private-message', checkUser, upload.single('file'), (req, res) => {
+    const { receiverId, content } = req.body;
+    const filePath = req.file ? '/uploads/' + req.file.filename : null;
+    db.run(`INSERT INTO private_messages (sender_id, receiver_id, content, file_path) VALUES (?, ?, ?, ?)`, [req.user.id, receiverId, content, filePath], (err) => {
+        res.json({ success: true, filePath });
+    });
+});
+
 app.use((req, res) => { res.status(404).send("Страница не найдена"); });
 
 const serverHttp = http.createServer(app);
