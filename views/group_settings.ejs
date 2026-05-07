@@ -7,26 +7,19 @@
     <style>
         .settings-container { max-width: 800px; margin: 20px auto; padding: 20px; }
         .settings-section { background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
-        .role-card { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.05); margin-bottom: 8px; border-radius: 8px; border-left: 4px solid <%= role.color || '#fff' %>; }
-        .role-permissions { display: flex; gap: 15px; flex-wrap: wrap; }
-        .perm-check { display: flex; align-items: center; gap: 5px; font-size: 0.8em; }
-        .perm-check input { width: auto; }
-        .color-input { width: 40px; height: 30px; padding: 0; border: none; cursor: pointer; }
+        .role-card { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.05); margin-bottom: 8px; border-radius: 8px; }
         .member-card { display: flex; align-items: center; gap: 10px; padding: 8px; background: rgba(255,255,255,0.03); margin-bottom: 5px; border-radius: 5px; }
         .member-card img { width: 30px; height: 30px; border-radius: 50%; }
-        .delete-role-btn { background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
+        .delete-btn { background: #ff4444; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; }
     </style>
 </head>
 <body>
     <nav class="sidebar">
         <div class="sidebar-icon-logo">🛡️</div>
-        <div class="sidebar-logo">HL2 Forum</div>
         <ul class="nav-list">
             <li class="nav-item"><a href="/" class="nav-link"><span class="nav-icon">🏠</span><span class="nav-text">Главная</span></a></li>
             <li class="nav-item"><a href="/groups" class="nav-link"><span class="nav-icon">👥</span><span class="nav-text">Группы</span></a></li>
             <li class="nav-item"><a href="/group/<%= group.id %>" class="nav-link"><span class="nav-icon">💬</span><span class="nav-text">Чат группы</span></a></li>
-            <li class="nav-item"><a href="/group/<%= group.id %>/settings" class="nav-link active" style="color:#ff9900;"><span class="nav-icon">⚙️</span><span class="nav-text">Настройки</span></a></li>
-            <div class="nav-divider"></div>
             <li class="nav-item"><a href="/logout" class="nav-link logout-btn"><span class="nav-icon">🚪</span><span class="nav-text">Выход</span></a></li>
         </ul>
     </nav>
@@ -41,7 +34,6 @@
         </header>
 
         <div class="settings-container">
-            <!-- Общие настройки -->
             <div class="settings-section">
                 <h2>⚙️ Настройки группы: <%= group.name %></h2>
                 <form action="/group/<%= group.id %>/update" method="POST">
@@ -55,205 +47,95 @@
                 </form>
             </div>
 
-            <!-- Управление ролями -->
             <div class="settings-section">
                 <h2>🎭 Роли группы</h2>
                 <div id="roles-list">
-                    <% roles.forEach(role => { %>
-                        <div class="role-card" style="border-left-color: <%= role.color %>;">
-                            <div>
-                                <strong style="color: <%= role.color %>;"><%= role.name %></strong>
+                    <% if (roles && roles.length > 0) { %>
+                        <% roles.forEach(function(role) { %>
+                            <div class="role-card" style="border-left:4px solid <%= role.color || '#fff' %>;">
+                                <strong style="color:<%= role.color || '#fff' %>;"><%= role.name %></strong>
+                                <button class="delete-btn" onclick="deleteRole(<%= role.id %>)">🗑️</button>
                             </div>
-                            <div>
-                                <button class="delete-role-btn" onclick="deleteRole(<%= role.id %>)">🗑️</button>
-                            </div>
-                        </div>
-                    <% }); %>
+                        <% }); %>
+                    <% } else { %>
+                        <p style="color:#888;">Нет ролей. Создайте первую!</p>
+                    <% } %>
                 </div>
                 
-                <h3>Создать новую роль</h3>
+                <h3>Создать роль</h3>
                 <form id="create-role-form" style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
-                    <div>
-                        <label>Название:</label>
-                        <input type="text" id="role-name" placeholder="Название роли" required>
-                    </div>
-                    <div>
-                        <label>Цвет:</label>
-                        <input type="color" id="role-color" value="#ff9900" class="color-input">
-                    </div>
-                    <div>
-                        <label>Права:</label>
-                        <div class="role-permissions">
-                            <label class="perm-check"><input type="checkbox" id="perm-roles"> Управление ролями</label>
-                            <label class="perm-check"><input type="checkbox" id="perm-kick"> Кик</label>
-                            <label class="perm-check"><input type="checkbox" id="perm-ban"> Бан</label>
-                            <label class="perm-check"><input type="checkbox" id="perm-delete"> Удаление сообщений</label>
-                        </div>
-                    </div>
+                    <div><label>Название:</label><input type="text" id="role-name" required></div>
+                    <div><label>Цвет:</label><input type="color" id="role-color" value="#ff9900"></div>
                     <button type="submit">➕ Создать</button>
                 </form>
             </div>
 
-            <!-- Участники и их роли -->
             <div class="settings-section">
-                <h2>👥 Участники</h2>
-                <div id="members-list">
-                    <% members.forEach(member => { %>
+                <h2>👥 Участники (<%= members ? members.length : 0 %>)</h2>
+                <% if (members && members.length > 0) { %>
+                    <% members.forEach(function(member) { %>
                         <div class="member-card">
-                            <img src="<%= member.avatar %>" alt="<%= member.username %>">
+                            <img src="<%= member.avatar || '/images/default_avatar.png' %>" alt="<%= member.username %>">
                             <span><a href="/user/<%= member.user_id %>"><%= member.username %></a></span>
-                            <% if (member.user_id === group.creator_id) { %><span style="color:#ff9900;">👑</span><% } %>
+                            <% if (member.user_id == group.creator_id) { %><span style="color:#ff9900;">👑</span><% } %>
                             <select onchange="assignRole(<%= member.user_id %>, this.value)" style="margin-left:auto;padding:5px;background:#333;color:white;border:1px solid #555;border-radius:3px;">
                                 <option value="">Без роли</option>
-                                <% roles.forEach(role => { %>
-                                    <option value="<%= role.id %>" <%= member.role_id === role.id ? 'selected' : '' %>><%= role.name %></option>
-                                <% }); %>
+                                <% if (roles) { roles.forEach(function(role) { %>
+                                    <option value="<%= role.id %>" <%= member.role_id == role.id ? 'selected' : '' %>><%= role.name %></option>
+                                <% }); } %>
                             </select>
+                            <% if (member.user_id != group.creator_id) { %>
+                                <button class="delete-btn" onclick="kickMember(<%= member.user_id %>)">🚫</button>
+                            <% } %>
                         </div>
                     <% }); %>
-                </div>
+                <% } %>
             </div>
         </div>
     </div>
 
     <script>
-        document.getElementById('create-role-form').addEventListener('submit', async (e) => {
+        document.getElementById('create-role-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const name = document.getElementById('role-name').value;
             const color = document.getElementById('role-color').value;
-            const perms = {
-                can_manage_roles: document.getElementById('perm-roles').checked ? 1 : 0,
-                can_kick: document.getElementById('perm-kick').checked ? 1 : 0,
-                can_ban: document.getElementById('perm-ban').checked ? 1 : 0,
-                can_delete_messages: document.getElementById('perm-delete').checked ? 1 : 0
-            };
-            
             const r = await fetch('/api/group/<%= group.id %>/create-role', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, color, ...perms })
+                body: JSON.stringify({ name, color })
             });
             const d = await r.json();
             if (d.success) window.location.reload();
-            else alert(d.error);
+            else alert('Ошибка');
         });
 
         async function deleteRole(roleId) {
             if (!confirm('Удалить роль?')) return;
-            const r = await fetch('/api/group/<%= group.id %>/delete-role', {
+            await fetch('/api/group/<%= group.id %>/delete-role', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ roleId })
             });
-            const d = await r.json();
-            if (d.success) window.location.reload();
+            window.location.reload();
         }
 
         async function assignRole(userId, roleId) {
-            const r = await fetch('/api/group/<%= group.id %>/assign-role', {
+            await fetch('/api/group/<%= group.id %>/assign-role', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, roleId })
             });
         }
-        // ========== СИСТЕМА ГИФОК ==========
-let gifVisible = false;
 
-function toggleGifSearch() {
-    gifVisible = !gifVisible;
-    document.getElementById('gif-search').style.display = gifVisible ? 'block' : 'none';
-    if (gifVisible) {
-        document.getElementById('gif-query').focus();
-    }
-}
-
-async function searchGifs() {
-    const query = document.getElementById('gif-query').value.trim();
-    if (!query) return;
-    
-    const API_KEY = 'aFFKTuSMjdC8SzMONUofN6e5WUO8WCn6';
-    const url = `https://api.giphy.com/v1/gifs/search?api_key=${API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=pg-13&lang=ru`;
-    
-    document.getElementById('gif-results').innerHTML = '<div class="loading"></div>';
-    
-    try {
-        const r = await fetch(url);
-        const d = await r.json();
-        const results = document.getElementById('gif-results');
-        
-        if (d.data.length === 0) {
-            results.innerHTML = '<p style="color:#888;text-align:center;">Ничего не найдено 😔</p>';
-            return;
+        async function kickMember(userId) {
+            if (!confirm('Выгнать участника?')) return;
+            await fetch('/api/group/<%= group.id %>/kick', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+            window.location.reload();
         }
-        
-        results.innerHTML = d.data.map(g => `
-            <div style="cursor:pointer;transition:0.3s;border-radius:8px;overflow:hidden;border:2px solid transparent;"
-                 onmouseover="this.style.borderColor='#ff9900';this.style.transform='scale(1.05)'"
-                 onmouseout="this.style.borderColor='transparent';this.style.transform='scale(1)'"
-                 onclick="insertGif('${g.images.downsized.url.replace(/'/g, "\\'")}')">
-                <img src="${g.images.fixed_height_small.url}" alt="${g.title}" style="height:80px;display:block;">
-            </div>
-        `).join('');
-    } catch(e) {
-        console.error('Ошибка загрузки гифок:', e);
-        document.getElementById('gif-results').innerHTML = '<p style="color:#ff6b6b;">Ошибка загрузки 😢</p>';
-    }
-}
-
-function insertGif(url) {
-    // Для чатов - сразу отправляем
-    const isChat = !!document.getElementById('messageInput');
-    const isPrivateChat = !!document.getElementById('chatForm') && document.getElementById('messageInput');
-    const isGroupChat = window.location.pathname.includes('/group/');
-    const isTopicComment = !!document.querySelector('textarea[name="content"]');
-    
-    if (isGroupChat) {
-        // Отправка гифки в группу
-        const formData = new FormData();
-        formData.append('groupId', groupId);
-        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
-        formData.append('isGif', '1');
-        
-        fetch('/api/send-group-message', { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(d => {
-                if (d.success) {
-                    document.getElementById('gif-search').style.display = 'none';
-                    gifVisible = false;
-                }
-            });
-    } else if (isPrivateChat) {
-        // Отправка гифки в личку
-        const formData = new FormData();
-        formData.append('receiverId', receiver.id);
-        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
-        
-        fetch('/api/send-private-message', { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(d => {
-                if (d.success) {
-                    document.getElementById('gif-search').style.display = 'none';
-                    gifVisible = false;
-                }
-            });
-    } else if (isTopicComment) {
-        // Вставка гифки в текст комментария/темы
-        const textarea = document.querySelector('textarea[name="content"]');
-        textarea.value += `\n<img src="${url}" style="max-width:100%;border-radius:8px;">\n`;
-        document.getElementById('gif-search').style.display = 'none';
-        gifVisible = false;
-    } else if (isChat) {
-        // Общий чат - через Socket.io
-        socket.emit('chat message', {
-            userId: user.id,
-            username: user.username,
-            avatar: user.avatar,
-            content: `<img src="${url}" style="max-width:100%;border-radius:8px;">`
-        });
-        document.getElementById('gif-search').style.display = 'none';
-        gifVisible = false;
-    }
-}
     </script>
 </body>
 </html>
