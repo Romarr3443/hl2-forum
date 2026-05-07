@@ -13,13 +13,15 @@
         .group-info h3 { margin: 0; color: #ff9900; }
         .group-info p { margin: 5px 0; color: #888; }
         .public-badge { background: #4CAF50; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; }
+        .private-badge { background: #ff9900; color: black; padding: 2px 8px; border-radius: 10px; font-size: 0.7em; }
         .create-group-section { background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; margin-bottom: 20px; }
         .create-group-section form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .create-group-section input { flex: 1; min-width: 200px; }
         .invites-section { margin-top: 30px; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; }
         .invite-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(255,255,255,0.05); margin-bottom: 10px; border-radius: 5px; }
-        .accept-btn { background: #4CAF50; }
-        .reject-btn { background: #ff6b6b; }
+        .accept-btn { background: #4CAF50; color: white; border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer; margin-left: 5px; }
+        .reject-btn { background: #ff6b6b; color: white; border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer; margin-left: 5px; }
+        .creator-badge { color: #ff9900; font-size: 0.8em; }
     </style>
 </head>
 <body>
@@ -34,8 +36,13 @@
             <li class="nav-item"><a href="/dialogs" class="nav-link"><span class="nav-icon">📨</span><span class="nav-text">Диалоги</span></a></li>
             <li class="nav-item"><a href="/support" class="nav-link"><span class="nav-icon">🆘</span><span class="nav-text">Поддержка</span></a></li>
             <div class="nav-divider"></div>
-            <li class="nav-item"><a href="/user/<%= user.id %>" class="nav-link"><span class="nav-icon">👤</span><span class="nav-text">Профиль</span></a></li>
-            <li class="nav-item"><a href="/logout" class="nav-link logout-btn"><span class="nav-icon">🚪</span><span class="nav-text">Выход</span></a></li>
+            <% if (user) { %>
+                <li class="nav-item"><a href="/user/<%= user.id %>" class="nav-link"><span class="nav-icon">👤</span><span class="nav-text">Профиль</span></a></li>
+                <% if (['founder','admin','support','moderator'].includes(user.role)) { %>
+                    <li class="nav-item"><a href="/admin" class="nav-link" style="color:#ff9900;"><span class="nav-icon">⚙️</span><span class="nav-text">Админ-панель</span></a></li>
+                <% } %>
+                <li class="nav-item"><a href="/logout" class="nav-link logout-btn"><span class="nav-icon">🚪</span><span class="nav-text">Выход</span></a></li>
+            <% } %>
         </ul>
     </nav>
 
@@ -53,7 +60,7 @@
                 <h2>Создать новую группу</h2>
                 <form action="/create-group" method="POST">
                     <input type="text" name="name" placeholder="Название группы" required>
-                    <label style="display:flex;align-items:center;gap:5px;color:white;">
+                    <label style="display:flex;align-items:center;gap:5px;color:white;white-space:nowrap;">
                         <input type="checkbox" name="is_public" value="1" style="width:auto;"> Открытая группа
                     </label>
                     <button type="submit">Создать</button>
@@ -62,48 +69,66 @@
 
             <h2>Мои группы</h2>
             <div id="myGroups">
-                <% if (myGroups.length === 0) { %><p style="color:#888;">Вы пока не состоите ни в одной группе</p><% } %>
-                <% myGroups.forEach(group => { %>
-                    <div class="group-card" onclick="window.location.href='/group/<%= group.id %>'">
-                        <img src="<%= group.avatar %>" alt="<%= group.name %>">
-                        <div class="group-info">
-                            <h3><%= group.name %> <% if (group.is_public) { %><span class="public-badge">Открытая</span><% } %></h3>
-                            <p>Участников: <%= group.members_count %></p>
+                <% if (myGroups && myGroups.length > 0) { %>
+                    <% myGroups.forEach(function(group) { %>
+                        <div class="group-card" onclick="window.location.href='/group/<%= group.id %>'">
+                            <img src="<%= group.avatar || '/images/group_default.png' %>" alt="<%= group.name %>">
+                            <div class="group-info">
+                                <h3>
+                                    <%= group.name %>
+                                    <% if (group.is_public) { %>
+                                        <span class="public-badge">Открытая</span>
+                                    <% } else { %>
+                                        <span class="private-badge">Закрытая</span>
+                                    <% } %>
+                                </h3>
+                                <p>👥 <%= group.members_count %> участников</p>
+                                <% if (group.creator_id == user.id) { %>
+                                    <p class="creator-badge">👑 Вы создатель</p>
+                                <% } %>
+                            </div>
                         </div>
-                    </div>
-                <% }) %>
+                    <% }); %>
+                <% } else { %>
+                    <p style="color:#888;">Вы пока не состоите ни в одной группе</p>
+                <% } %>
             </div>
 
             <h2>Открытые группы</h2>
             <div id="publicGroups">
-                <% if (publicGroups.length === 0) { %><p style="color:#888;">Нет открытых групп</p><% } %>
-                <% publicGroups.forEach(group => { %>
-                    <div class="group-card" onclick="window.location.href='/group/<%= group.id %>'">
-                        <img src="<%= group.avatar %>" alt="<%= group.name %>">
-                        <div class="group-info">
-                            <h3><%= group.name %> <span class="public-badge">Открытая</span></h3>
-                            <p>Участников: <%= group.members_count %></p>
-                            <p>Создатель: <%= group.creator_username %></p>
+                <% if (publicGroups && publicGroups.length > 0) { %>
+                    <% publicGroups.forEach(function(group) { %>
+                        <div class="group-card" onclick="window.location.href='/group/<%= group.id %>'">
+                            <img src="<%= group.avatar || '/images/group_default.png' %>" alt="<%= group.name %>">
+                            <div class="group-info">
+                                <h3>
+                                    <%= group.name %>
+                                    <span class="public-badge">Открытая</span>
+                                </h3>
+                                <p>👥 <%= group.members_count %> участников</p>
+                                <p>Создатель: <a href="/user/<%= group.creator_id %>"><%= group.creator_username %></a></p>
+                            </div>
                         </div>
-                    </div>
-                <% }) %>
+                    <% }); %>
+                <% } else { %>
+                    <p style="color:#888;">Нет открытых групп</p>
+                <% } %>
             </div>
 
-            <% if (invites.length > 0) { %>
+            <% if (invites && invites.length > 0) { %>
                 <div class="invites-section">
-                    <h3>Приглашения (<%= invites.length %>)</h3>
-                    <% invites.forEach(invite => { %>
+                    <h3>Приглашения в группы (<%= invites.length %>)</h3>
+                    <% invites.forEach(function(invite) { %>
                         <div class="invite-item" id="invite-<%= invite.id %>">
                             <div>
                                 <strong><%= invite.group_name %></strong>
-                                <p style="color:#888;">От: <a href="/user/<%= invite.sender_id %>"><%= invite.sender_username %></a></p>
                             </div>
                             <div>
                                 <button class="accept-btn" onclick="handleInvite(<%= invite.id %>, 'accepted')">Принять</button>
                                 <button class="reject-btn" onclick="handleInvite(<%= invite.id %>, 'rejected')">Отклонить</button>
                             </div>
                         </div>
-                    <% }) %>
+                    <% }); %>
                 </div>
             <% } %>
         </div>
@@ -111,113 +136,26 @@
 
     <script>
         async function handleInvite(inviteId, status) {
-            const r = await fetch('/api/handle-invite', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ inviteId, status })
-            });
-            const d = await r.json();
-            if (d.success) { document.getElementById('invite-' + inviteId).remove(); if (status === 'accepted') { alert('Вы присоединились!'); window.location.reload(); } }
-            else alert(d.error);
-        }
-        // ========== СИСТЕМА ГИФОК ==========
-let gifVisible = false;
-
-function toggleGifSearch() {
-    gifVisible = !gifVisible;
-    document.getElementById('gif-search').style.display = gifVisible ? 'block' : 'none';
-    if (gifVisible) {
-        document.getElementById('gif-query').focus();
-    }
-}
-
-async function searchGifs() {
-    const query = document.getElementById('gif-query').value.trim();
-    if (!query) return;
-    
-    const API_KEY = 'aFFKTuSMjdC8SzMONUofN6e5WUO8WCn6';
-    const url = `https://api.giphy.com/v1/gifs/search?api_key=${API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=pg-13&lang=ru`;
-    
-    document.getElementById('gif-results').innerHTML = '<div class="loading"></div>';
-    
-    try {
-        const r = await fetch(url);
-        const d = await r.json();
-        const results = document.getElementById('gif-results');
-        
-        if (d.data.length === 0) {
-            results.innerHTML = '<p style="color:#888;text-align:center;">Ничего не найдено 😔</p>';
-            return;
-        }
-        
-        results.innerHTML = d.data.map(g => `
-            <div style="cursor:pointer;transition:0.3s;border-radius:8px;overflow:hidden;border:2px solid transparent;"
-                 onmouseover="this.style.borderColor='#ff9900';this.style.transform='scale(1.05)'"
-                 onmouseout="this.style.borderColor='transparent';this.style.transform='scale(1)'"
-                 onclick="insertGif('${g.images.downsized.url.replace(/'/g, "\\'")}')">
-                <img src="${g.images.fixed_height_small.url}" alt="${g.title}" style="height:80px;display:block;">
-            </div>
-        `).join('');
-    } catch(e) {
-        console.error('Ошибка загрузки гифок:', e);
-        document.getElementById('gif-results').innerHTML = '<p style="color:#ff6b6b;">Ошибка загрузки 😢</p>';
-    }
-}
-
-function insertGif(url) {
-    // Для чатов - сразу отправляем
-    const isChat = !!document.getElementById('messageInput');
-    const isPrivateChat = !!document.getElementById('chatForm') && document.getElementById('messageInput');
-    const isGroupChat = window.location.pathname.includes('/group/');
-    const isTopicComment = !!document.querySelector('textarea[name="content"]');
-    
-    if (isGroupChat) {
-        // Отправка гифки в группу
-        const formData = new FormData();
-        formData.append('groupId', groupId);
-        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
-        formData.append('isGif', '1');
-        
-        fetch('/api/send-group-message', { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(d => {
+            try {
+                const r = await fetch('/api/handle-invite', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inviteId, status })
+                });
+                const d = await r.json();
                 if (d.success) {
-                    document.getElementById('gif-search').style.display = 'none';
-                    gifVisible = false;
+                    document.getElementById('invite-' + inviteId).remove();
+                    if (status === 'accepted') {
+                        alert('✅ Вы присоединились к группе!');
+                        window.location.reload();
+                    }
+                } else {
+                    alert(d.error || 'Ошибка');
                 }
-            });
-    } else if (isPrivateChat) {
-        // Отправка гифки в личку
-        const formData = new FormData();
-        formData.append('receiverId', receiver.id);
-        formData.append('content', `<img src="${url}" style="max-width:100%;border-radius:8px;">`);
-        
-        fetch('/api/send-private-message', { method: 'POST', body: formData })
-            .then(r => r.json())
-            .then(d => {
-                if (d.success) {
-                    document.getElementById('gif-search').style.display = 'none';
-                    gifVisible = false;
-                }
-            });
-    } else if (isTopicComment) {
-        // Вставка гифки в текст комментария/темы
-        const textarea = document.querySelector('textarea[name="content"]');
-        textarea.value += `\n<img src="${url}" style="max-width:100%;border-radius:8px;">\n`;
-        document.getElementById('gif-search').style.display = 'none';
-        gifVisible = false;
-    } else if (isChat) {
-        // Общий чат - через Socket.io
-        socket.emit('chat message', {
-            userId: user.id,
-            username: user.username,
-            avatar: user.avatar,
-            content: `<img src="${url}" style="max-width:100%;border-radius:8px;">`
-        });
-        document.getElementById('gif-search').style.display = 'none';
-        gifVisible = false;
-    }
-}
+            } catch (e) {
+                console.error(e);
+            }
+        }
     </script>
 </body>
 </html>
