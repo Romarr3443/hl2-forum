@@ -4,7 +4,7 @@ const db = new sqlite3.Database('./hl2forum.db');
 // ВПИШИ СВОЙ НИКНЕЙМ СЮДА!
 const myNickname = 'Сифан';
 
-db.get("SELECT * FROM users WHERE username = ?", [myNickname], (err, user) => {
+db.get("SELECT * FROM users WHERE username = Сифан", [myNickname], (err, user) => {
     if (err) {
         console.error('Ошибка:', err);
         db.close();
