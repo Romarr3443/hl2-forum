@@ -18,7 +18,7 @@ db.get("SELECT * FROM users WHERE username = Сифан", [myNickname], (err, us
         return;
     }
     
-    db.run("UPDATE users SET role = 'founder', tag = '👑 Основатель' WHERE username = ?", [myNickname], function(err) {
+    db.run("UPDATE users SET role = 'founder', tag = '👑 Основатель' WHERE username = Сифан", [myNickname], function(err) {
         if (err) {
             console.error('Ошибка:', err);
         } else {
