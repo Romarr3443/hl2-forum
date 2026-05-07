@@ -258,6 +258,93 @@ app.get('/group/:id', checkUser, (req, res) => {
     });
 });
 
+// Выход из группы
+app.post('/group/:id/leave', checkUser, (req, res) => {
+    if (!req.user) return res.redirect('/login');
+    const groupId = req.params.id;
+    
+    db.run(`UPDATE group_members SET status = 'left' WHERE group_id = ? AND user_id = ?`, [groupId, req.user.id], (err) => {
+        if (err) return res.send("Ошибка");
+        res.redirect('/groups');
+    });
+});
+
+// Удаление группы (только создатель)
+app.post('/group/:id/delete', checkUser, (req, res) => {
+    if (!req.user) return res.redirect('/login');
+    const groupId = req.params.id;
+    
+    db.get(`SELECT * FROM chat_groups WHERE id = ? AND creator_id = ?`, [groupId, req.user.id], (err, group) => {
+        if (!group) return res.send("Только создатель может удалить группу!");
+        
+        db.run(`DELETE FROM group_messages WHERE group_id = ?`, [groupId]);
+        db.run(`DELETE FROM group_members WHERE group_id = ?`, [groupId]);
+        db.run(`DELETE FROM group_invites WHERE group_id = ?`, [groupId]);
+        db.run(`DELETE FROM group_roles WHERE group_id = ?`, [groupId]);
+        db.run(`DELETE FROM chat_groups WHERE id = ?`, [groupId], (err) => {
+            res.redirect('/groups');
+        });
+    });
+});
+
+// Настройки группы (страница)
+app.get('/group/:id/settings', checkUser, (req, res) => {
+    if (!req.user) return res.redirect('/login');
+    const groupId = req.params.id;
+    
+    db.get(`SELECT * FROM chat_groups WHERE id = ? AND creator_id = ?`, [groupId, req.user.id], (err, group) => {
+        if (!group) return res.send("Только создатель может настраивать группу!");
+        
+        db.all(`SELECT * FROM group_roles WHERE group_id = ?`, [groupId], (err, roles) => {
+            db.all(`SELECT gm.*, u.username, u.avatar, gmr.role_id FROM group_members gm JOIN users u ON gm.user_id = u.id LEFT JOIN group_member_roles gmr ON gm.id = gmr.member_id WHERE gm.group_id = ? AND gm.status = 'active'`, [groupId], (err, members) => {
+                res.render('group_settings', { user: req.user, group, roles: roles || [], members: members || [] });
+            });
+        });
+    });
+});
+
+// Обновление настроек группы
+app.post('/group/:id/update', checkUser, (req, res) => {
+    const { name, is_public } = req.body;
+    db.run(`UPDATE chat_groups SET name = ?, is_public = ? WHERE id = ? AND creator_id = ?`, [name, is_public ? 1 : 0, req.params.id, req.user.id], (err) => {
+        res.redirect(`/group/${req.params.id}/settings`);
+    });
+});
+
+// Создание роли в группе
+app.post('/api/group/:id/create-role', checkUser, (req, res) => {
+    const { name, color, can_manage_roles, can_kick, can_ban, can_delete_messages } = req.body;
+    db.run(`INSERT INTO group_roles (group_id, name, color, can_manage_roles, can_kick, can_ban, can_delete_messages) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [req.params.id, name, color || '#ffffff', can_manage_roles || 0, can_kick || 0, can_ban || 0, can_delete_messages || 0], (err) => {
+        res.json({ success: true });
+    });
+});
+
+// Удаление роли
+app.post('/api/group/:id/delete-role', checkUser, (req, res) => {
+    db.run(`DELETE FROM group_roles WHERE id = ?`, [req.body.roleId]);
+    db.run(`DELETE FROM group_member_roles WHERE role_id = ?`, [req.body.roleId]);
+    res.json({ success: true });
+});
+
+// Назначение роли участнику
+app.post('/api/group/:id/assign-role', checkUser, (req, res) => {
+    const { userId, roleId } = req.body;
+    db.get(`SELECT id FROM group_members WHERE group_id = ? AND user_id = ? AND status = 'active'`, [req.params.id, userId], (err, member) => {
+        if (!member) return res.json({ error: "Участник не найден" });
+        db.run(`DELETE FROM group_member_roles WHERE member_id = ?`, [member.id]);
+        if (roleId) db.run(`INSERT INTO group_member_roles (member_id, role_id) VALUES (?, ?)`, [member.id, roleId]);
+        res.json({ success: true });
+    });
+});
+
+// Кик участника из группы
+app.post('/api/group/:id/kick', checkUser, (req, res) => {
+    const { userId } = req.body;
+    db.run(`UPDATE group_members SET status = 'kicked' WHERE group_id = ? AND user_id = ?`, [req.params.id, userId]);
+    res.json({ success: true });
+});
+
 app.get('/api/group-messages/:id', (req, res) => {
     db.all(`SELECT gm.*, u.username, u.avatar FROM group_messages gm JOIN users u ON gm.sender_id = u.id WHERE gm.group_id = ? AND gm.is_deleted = 0 ORDER BY gm.created_at ASC LIMIT 100`, [req.params.id], (err, m) => res.json(m || []));
 });
