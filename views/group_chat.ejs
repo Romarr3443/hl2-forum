@@ -203,16 +203,25 @@
             </div>
         </header>
 
-        <div class="chat-container">
-            <div class="chat-header">
-                <img src="<%= group.avatar %>" alt="<%= group.name %>">
-                <div class="chat-header-info">
-                    <h3><%= group.name %></h3>
-                    <span class="members-count" onclick="openMembersModal()">
-                        👥 <%= members.length %> участников
-                    </span>
-                </div>
-            </div>
+<div class="chat-header">
+    <img src="<%= group.avatar %>" alt="<%= group.name %>">
+    <div class="chat-header-info">
+        <h3><%= group.name %></h3>
+        <span class="members-count" onclick="openMembersModal()">👥 <%= members.length %> участников</span>
+        <div style="margin-top:5px;">
+            <% if (user.id === group.creator_id) { %>
+                <a href="/group/<%= group.id %>/settings" style="color:#ff9900;font-size:0.8em;">⚙️ Настройки</a>
+                <form action="/group/<%= group.id %>/delete" method="POST" style="display:inline;" onsubmit="return confirm('Удалить группу навсегда?')">
+                    <button type="submit" style="background:red;color:white;padding:3px 8px;font-size:0.7em;">🗑️ Удалить</button>
+                </form>
+            <% } else { %>
+                <form action="/group/<%= group.id %>/leave" method="POST" style="display:inline;" onsubmit="return confirm('Выйти из группы?')">
+                    <button type="submit" style="background:#ff6b6b;color:white;padding:3px 8px;font-size:0.7em;">🚪 Выйти</button>
+                </form>
+            <% } %>
+        </div>
+    </div>
+</div>
 
             <div class="chat-messages" id="messages"></div>
 
