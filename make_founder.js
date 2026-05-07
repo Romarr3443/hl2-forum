@@ -2,7 +2,7 @@ const sqlite3 = require('sqlite3').verbose();
 const db = new sqlite3.Database('./hl2forum.db');
 
 // ВПИШИ СВОЙ НИКНЕЙМ СЮДА!
-const myNickname = 'Капуста';
+const myNickname = 'Сифан';
 
 db.get("SELECT * FROM users WHERE username = ?", [myNickname], (err, user) => {
     if (err) {
